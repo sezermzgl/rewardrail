@@ -16,6 +16,7 @@ import {
   explorer,
   readContract,
   invokeContract,
+  invokeContractAsPlayer,
   submitClassic,
   submitAsPlayer,
   assetBalance,
@@ -183,29 +184,40 @@ app.get('/player/tier', (req, res) => {
  * replay guard, which is where the advertiser's money is at stake.
  */
 app.post('/player/convert', async (req, res) => {
-  const { player, amount } = req.body ?? {};
-  const record = getPlayer(player);
-  if (!record) return fail(res, 404, 'unknown player');
+  const { player, campaignId } = req.body ?? {};
+  if (!getPlayer(player)) return fail(res, 404, 'unknown player');
+  if (campaignId === undefined) return fail(res, 400, 'campaignId is required');
 
   const tier = tierOf(player);
   if (!tier.canConvert) {
-    return res.status(409).json({
-      error: 'conversion locked',
-      ...tier,
-    });
+    return res.status(409).json({ error: 'conversion locked', ...tier });
   }
 
   const custodial = playerKeys.get(player);
   if (!custodial) return fail(res, 400, 'no custodial key for this player');
 
-  const balance = await assetBalance(player, REWARD);
-  const sendAmount = amount ?? balance;
-  if (Number(sendAmount) <= 0) return fail(res, 400, 'nothing to convert');
+  // The escrow is the source of the money, so the claim decides the amount.
+  // The player's REWARD balance should match it; if it does not, something
+  // upstream is wrong and paying out the larger of the two would be a bug.
+  const claim = await readContract('claim_of', [sc.u64(campaignId), sc.address(player)]);
+  const claimUnits = stroopsToUnits(claim);
+  const rewardBalance = await assetBalance(player, REWARD);
+
+  if (Number(claimUnits) <= 0) return fail(res, 400, 'no claim to convert');
+  if (Number(rewardBalance) < Number(claimUnits)) {
+    return fail(
+      res,
+      409,
+      'reward balance is below the claim',
+      `claim ${claimUnits}, holding ${rewardBalance} — part of this reward was already clawed back or converted`,
+    );
+  }
 
   try {
-    // REWARD goes back to its issuer and TUSDC comes out, one for one. In
-    // production this is a path payment across the DEX; here the platform
-    // backs the reward directly, which keeps the demo free of liquidity setup.
+    // Burn the reward first. If the withdrawal then fails the player is
+    // briefly short, but the claim is still on chain and a retry completes
+    // it. Withdrawing first would leave a window where the player holds both
+    // the payout and a still-clawbackable reward.
     const burnHash = await submitAsPlayer({
       player: custodial.keypair,
       sponsor: keys.sponsor,
@@ -213,29 +225,33 @@ app.post('/player/convert', async (req, res) => {
         payment({
           destination: keys.rewardIssuer.publicKey(),
           asset: REWARD,
-          amount: sendAmount,
+          amount: claimUnits,
         }),
       ],
     });
 
-    const payoutHash = await submitClassic({
-      source: keys.tusdcIssuer,
-      ops: [payment({ destination: player, asset: TUSDC, amount: sendAmount })],
-    });
+    // The TUSDC comes out of the escrow, where it has been held as backing
+    // since the action settled. Nothing new is minted.
+    const withdrawal = await invokeContractAsPlayer(
+      'withdraw',
+      [sc.u64(campaignId), sc.address(player)],
+      custodial.keypair,
+      keys.sponsor,
+    );
 
     logEvent({
       kind: 'convert',
       actor: player,
-      amount: sendAmount,
-      hash: payoutHash,
-      url: explorer(payoutHash),
+      amount: claimUnits,
+      hash: withdrawal.hash,
+      url: explorer(withdrawal.hash),
     });
 
     res.json({
-      amount: sendAmount,
+      amount: claimUnits,
       burnTx: { hash: burnHash, url: explorer(burnHash) },
-      payoutTx: { hash: payoutHash, url: explorer(payoutHash) },
-      note: 'REWARD is gone, so this payout can no longer be clawed back',
+      withdrawTx: { hash: withdrawal.hash, url: explorer(withdrawal.hash) },
+      note: 'paid out of escrow; the REWARD is burned, so this can no longer be clawed back',
     });
   } catch (err) {
     fail(res, 400, 'conversion failed', err.message);

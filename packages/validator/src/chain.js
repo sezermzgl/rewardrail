@@ -163,6 +163,59 @@ export async function invokeContract(method, args, signer) {
 }
 
 /**
+ * Invoke the contract as the player, without the player holding any XLM.
+ *
+ * Soroban treats the transaction source account as implicitly authorized, so
+ * a `require_auth()` on the player is satisfied by the player's signature on
+ * the transaction itself — no separate authorization entry needed. The
+ * sponsor then fee-bumps the whole thing, which is what lets a zero-balance
+ * account withdraw its own money.
+ */
+export async function invokeContractAsPlayer(method, args, player, sponsor) {
+  const account = await horizon.loadAccount(player.publicKey());
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(escrow().call(method, ...args))
+    .setTimeout(60)
+    .build();
+
+  const prepared = await soroban.prepareTransaction(tx);
+  prepared.sign(player);
+
+  // prepareTransaction raises the inner fee to cover the resource cost, and
+  // the bump has to bid at least that much. Bidding above the minimum is
+  // free: Stellar charges what the ledger requires, not what was offered.
+  const bumped = TransactionBuilder.buildFeeBumpTransaction(
+    sponsor,
+    (BigInt(prepared.fee) + 1_000_000n).toString(),
+    prepared,
+    config.networkPassphrase,
+  );
+  bumped.sign(sponsor);
+
+  const sent = await soroban.sendTransaction(bumped);
+  if (sent.status === 'ERROR') {
+    throw new Error(`${method} rejected: ${JSON.stringify(sent.errorResult)}`);
+  }
+
+  let result = await soroban.getTransaction(sent.hash);
+  const deadline = Date.now() + 45_000;
+  while (result.status === 'NOT_FOUND' && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 1000));
+    result = await soroban.getTransaction(sent.hash);
+  }
+  if (result.status !== 'SUCCESS') {
+    throw new Error(`${method} failed on chain: ${result.status}`);
+  }
+  return {
+    hash: sent.hash,
+    value: result.returnValue ? scValToNative(result.returnValue) : null,
+  };
+}
+
+/**
  * Simulation needs some existing account as a transaction source. The
  * validator holds no funds but does have an account, which is enough, and
  * nothing is ever submitted from a simulation.

@@ -88,8 +88,10 @@ function proofDigest(campaignId, playerPk, publisherPk, actionId) {
 function signAction(validator, campaignId, playerPk, publisherPk) {
   const actionId = randomBytes(32);
   const digest = proofDigest(campaignId, playerPk, publisherPk, actionId);
-  // Stellar keypairs are ed25519, so the validator key signs the digest directly.
-  return { actionId, signature: validator.sign(digest) };
+  // Stellar keypairs are ed25519, so the validator key signs the digest
+  // directly. The SDK returns a Uint8Array, and `.toString('hex')` on one of
+  // those yields comma-separated decimals rather than hex, so wrap it.
+  return { actionId, signature: Buffer.from(validator.sign(digest)) };
 }
 
 /* ------------------------------------------------------------------ *
@@ -151,7 +153,7 @@ async function main() {
     '--advertiser', keys.advertiser.publicKey(),
     '--platform', keys.platform.publicKey(),
     '--token_address', tusdcSac,
-    '--validator', keys.validator.rawPublicKey().toString('hex'),
+    '--validator', Buffer.from(keys.validator.rawPublicKey()).toString('hex'),
     '--per_action', PER_ACTION.toString(),
     '--budget', BUDGET.toString(),
     '--splits', splitsJson,

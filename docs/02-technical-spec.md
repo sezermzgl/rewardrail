@@ -189,6 +189,14 @@ Tiers are stored in the validator's database.
 
 In the demo the window is 60 seconds. The value is read from configuration, not hardcoded.
 
+### The payout comes out of escrow
+
+Converting does two things: the player's REWARD is sent back to its issuer and burned, then the escrow pays the matching TUSDC out of the claim recorded at settle time. Nothing is minted, and the money the advertiser locked is the money the player receives.
+
+The withdrawal is made by the player, not on their behalf. `withdraw` calls `require_auth()` on the claim holder, and Soroban treats the transaction's source account as implicitly authorized — so the player signing the transaction satisfies it, with no authorization entry to assemble. The sponsor then fee-bumps the whole transaction, which is what lets an account holding zero XLM withdraw its own money.
+
+Order matters: the reward is burned first. If the withdrawal then fails, the claim is still on chain and a retry completes it. Withdrawing first would leave a window in which the player holds both the payout and a still-clawbackable reward.
+
 ### How the lock is enforced
 
 The player's REWARD sits in their own account and is technically transferable. The lock is enforced by `/player/convert` refusing the conversion when the tier does not qualify.
@@ -276,8 +284,14 @@ Technical language is fine in the operator and advertiser panels; those parties 
 | Classic access | Horizon testnet |
 | Contract access | Soroban RPC testnet |
 | CLI | `stellar` (formerly `soroban`) |
-| Contract language | Rust, `soroban-sdk` |
-| Backend | Node.js, `@stellar/stellar-sdk` |
+| Contract language | Rust, `soroban-sdk` 28 |
+| Backend | Node.js, `@stellar/stellar-sdk` **17 or newer** |
+
+Two version traps cost time, so they are recorded here rather than rediscovered.
+
+Testnet runs protocol 28, and an older SDK cannot parse its Soroban XDR. On `@stellar/stellar-sdk` 13 every contract call failed with `Bad union switch: 4` while classic operations kept working, because classic XDR has not changed. The error points at nothing useful; the cause is the version.
+
+In SDK 17 `Keypair.rawPublicKey()` and `Keypair.sign()` return `Uint8Array` rather than `Buffer`. Calling `.toString('hex')` on one yields comma-separated decimals, which the CLI rejects with a type error that does not mention encoding. Wrap them in `Buffer.from()`.
 
 For a Soroban contract to hold a classic asset, that asset's Stellar Asset Contract must be deployed. For TUSDC this step is part of the setup script.
 
