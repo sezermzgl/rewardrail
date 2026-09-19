@@ -48,18 +48,19 @@ export function TransactionLog() {
   }, []);
 
   return (
-    <section
-      className="rounded-lg border p-4"
-      style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}
-    >
-      <header className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-sm font-semibold tracking-tight">Transaction log</h2>
+    <section className="dlog">
+      <header className="dlog__head">
+        <h2>Transaction log</h2>
+        <small>
+          {entries.length > 0
+            ? `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}, oldest first`
+            : 'every action, with the transaction that proves it'}
+        </small>
         {entries.length > 0 ? (
           <button
             type="button"
+            className="dlog__clear"
             onClick={() => transactionLog.clear()}
-            className="text-[12px] underline underline-offset-2"
-            style={{ color: 'var(--muted)' }}
             title="Rows survive a reload on purpose. Clear them between a rehearsal and the real run."
           >
             Clear
@@ -68,34 +69,35 @@ export function TransactionLog() {
       </header>
 
       {entries.length === 0 ? (
-        <p className="text-[13px]" style={{ color: 'var(--muted)' }}>
-          Every action appears here with the transaction that proves it.
+        <p className="dlog__empty">
+          Nothing yet. Complete a task in the player panel and the settlement
+          will appear here with its hash.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[34rem] text-[13px]">
+        <div className="dlog__scroll">
+          <table className="dtable">
             <thead>
-              <tr style={{ color: 'var(--muted)' }}>
-                <th className="text-left font-normal">Time</th>
-                <th className="text-left font-normal">Action</th>
-                <th className="text-left font-normal">Actor</th>
-                <th className="text-right font-normal">Amount</th>
-                <th className="text-right font-normal">Proof</th>
+              <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Actor</th>
+                <th className="right">Amount</th>
+                <th className="right">Proof</th>
               </tr>
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <tr key={entry.id} className="border-t" style={{ borderColor: 'var(--border)' }}>
-                  <td className="numeric py-1 pr-2 whitespace-nowrap">
+                <tr key={entry.id}>
+                  <td className="numeric mono" style={{ color: 'var(--muted)' }}>
                     {entry.at.slice(11, 19)}
                   </td>
-                  <td className="py-1 pr-2">{entry.action}</td>
-                  <td className="py-1 pr-2">{entry.actor}</td>
-                  <td className="numeric py-1 pr-2 text-right">{entry.amount ?? '—'}</td>
-                  <td className="mono py-1 text-right whitespace-nowrap">
+                  <td>{entry.action}</td>
+                  <td style={{ fontWeight: 700 }}>{entry.actor}</td>
+                  <td className="right numeric">{entry.amount ?? '—'}</td>
+                  <td className="right">
                     {entry.url ? (
                       <a
-                        className="underline underline-offset-2"
+                        className="dlog__hash mono"
                         href={entry.url}
                         target="_blank"
                         rel="noreferrer"
@@ -103,7 +105,7 @@ export function TransactionLog() {
                         {shortHash(entry.hash ?? '')}
                       </a>
                     ) : (
-                      <span title={entry.note} style={{ color: 'var(--muted)' }}>
+                      <span style={{ color: 'var(--muted)' }} title={entry.note}>
                         {entry.note ? 'no transaction' : '—'}
                       </span>
                     )}
