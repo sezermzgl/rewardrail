@@ -132,16 +132,17 @@ trap, not as error 5. "Surface contract rejections as clear API errors" cannot
 be satisfied for the signature path without either verifying manually before the
 call or mapping traps by context.
 
-### F2 — `refund_clawback` trusts the caller for the amount
+### F2 — `refund_clawback` trusts the caller for the amount — FIXED
 
 It zeroes the player's claim, then adds the caller's `amount` to `remaining`.
 Nothing ties the two together. A wrong `amount` inflates `remaining` past the
 TUSDC the contract actually holds, and the failure surfaces much later as a
 `withdraw` or `close_campaign` that cannot transfer.
 
-The fix is small and free: use the claim value it just zeroed. That also matches
-the principle the contract already states about `settle` — the contract decides
-what things are worth, not the caller.
+Fixed in the 2026-09-19 redeploy: `refund_clawback(campaign_id, player)` now
+derives the amount from the player's reserve, so the platform cannot inflate
+`remaining`. That matches the principle the contract already states about
+`settle` — the contract decides what things are worth, not the caller.
 
 Worse case: if the player already withdrew, the claim is 0, the TUSDC has left
 the contract, and `remaining` still grows by `amount`.
@@ -161,8 +162,10 @@ contract's token balance is a total, not any single campaign's escrow.
 
 This bites #14 directly: of the four figures the advertiser panel is specified
 to show — escrow balance, ratio table, spent, remaining — two are unavailable.
-Measured on testnet against campaign 0: `remaining` was 96.0000 TUSDC while the
-contract held 403.8000 across all campaigns.
+Measured again on the redeployed escrow: campaign 0 reports `remaining`
+96.0000 TUSDC while the contract holds 103.8000, because campaign 1 is also
+live in it. The per-campaign escrow figure the advertiser panel wants is the
+one number that cannot be read.
 
 Adding `budget: i128` to `Campaign` closes the spend half for one field. The
 per-campaign balance half needs either a per-campaign accumulator or a panel

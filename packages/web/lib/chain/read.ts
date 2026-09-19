@@ -94,12 +94,43 @@ export function getCampaign(campaignId: number): Promise<Campaign> {
   return simulate<Campaign>(config.escrowId, 'get_campaign', [u64Arg(campaignId)]);
 }
 
-/** An accrued, not yet withdrawn claim. Players and publishers both have one. */
+/**
+ * A publisher's or the platform's accrued, not yet withdrawn claim.
+ *
+ * Returns 0 for a player, and that is not a bug. A claim is withdrawable by
+ * whoever owns it; a player's payout is owed against a REWARD token they are
+ * still holding, so letting them call `withdraw` would hand over the escrowed
+ * value while they kept the reward — the same value twice. Player balances live
+ * in `reserveOf`.
+ */
 export function claimOf(campaignId: number, who: string): Promise<bigint> {
   return simulate<bigint>(config.escrowId, 'claim_of', [
     u64Arg(campaignId),
     addressArg(who),
   ]);
+}
+
+/** A player's entitlement, held against the REWARD they still hold. */
+export function reserveOf(campaignId: number, player: string): Promise<bigint> {
+  return simulate<bigint>(config.escrowId, 'reserve_of', [
+    u64Arg(campaignId),
+    addressArg(player),
+  ]);
+}
+
+/**
+ * What a given account is owed by this campaign, whichever side it sits on.
+ *
+ * The player panel and the publisher panel ask the same question of different
+ * actors, and only one of the two reads returns anything, so asking both and
+ * taking the non-zero one keeps the call site from needing to know the role.
+ */
+export async function owedTo(campaignId: number, who: string): Promise<bigint> {
+  const [claim, reserve] = await Promise.all([
+    claimOf(campaignId, who),
+    reserveOf(campaignId, who),
+  ]);
+  return claim > 0n ? claim : reserve;
 }
 
 export function isSettled(actionId: Uint8Array): Promise<boolean> {

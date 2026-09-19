@@ -32,5 +32,13 @@ asks for are not derivable from chain state:
 - **This campaign's escrow balance.** One contract carries every campaign, so
   its token balance is a total across all of them.
 
-Verified on testnet against campaign 0: `remaining` 96.0000 while the contract
-held 403.8000 TUSDC. Recorded as F4 in `docs/03-contract-interface.md`.
+Recorded as F4 in `docs/03-contract-interface.md`.
+
+## Player balances are not claims
+
+`claim_of` returns 0 for a player. A claim is withdrawable by its owner, and a
+player's payout is owed against a REWARD token they still hold — paying it out
+on demand would hand over the escrowed value while they kept the reward. Player
+balances are read with `reserveOf`, and the payout runs through the contract's
+`redeem_player` under platform auth. `owedTo` asks both and returns whichever
+answers, for call sites that do not care about the role.
