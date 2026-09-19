@@ -58,6 +58,13 @@ export const config = {
   escrowId: deployed.escrow,
   tusdcSacId: deployed.tusdcSac,
 
+  /**
+   * The campaign the demo runs against. The escrow holds many, but every
+   * screen in a walkthrough should point at the same one, so it is named
+   * here rather than passed around and mistyped.
+   */
+  demoCampaignId: Number(process.env.DEMO_CAMPAIGN_ID ?? 0),
+
   // Anchor. The SDF reference deployment on testnet: real SEP-10 and SEP-24,
   // test money. SRT is what it anchors and what its withdraw limits apply to.
   anchorHomeDomain: process.env.ANCHOR_HOME_DOMAIN ?? 'testanchor.stellar.org',

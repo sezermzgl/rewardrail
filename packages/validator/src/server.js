@@ -89,6 +89,7 @@ app.get('/health', (_req, res) => {
     escrow: config.escrowId,
     tusdcSac: config.tusdcSacId,
     validator: keys.validator.publicKey(),
+    demoCampaignId: config.demoCampaignId,
     tiers: {
       clawbackWindowSeconds: config.clawbackWindowSeconds,
       minAgeDays: config.trustTierMinAgeDays,

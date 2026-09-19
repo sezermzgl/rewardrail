@@ -72,6 +72,8 @@ export interface ValidatorHealth {
   escrow: string;
   tusdcSac: string;
   validator: string;
+  /** The campaign every screen in a walkthrough points at. */
+  demoCampaignId: number;
   tiers: { clawbackWindowSeconds: number; minAgeDays: number; minTasks: number };
 }
 
