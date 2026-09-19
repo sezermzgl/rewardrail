@@ -11,7 +11,8 @@
     "signup": "node src/signup.js",
     "deploy-escrow": "node src/deploy-escrow.js",
     "e2e": "node src/e2e.js",
-    "prove-auth-lock": "node src/prove-auth-lock.js"
+    "prove-auth-lock": "node src/prove-auth-lock.js",
+    "fund-from-anchor": "node src/fund-from-anchor.js"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^17.1.0"
