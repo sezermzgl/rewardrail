@@ -8,7 +8,7 @@
  * appear here. This must read like a rewards app, because that is the visual
  * proof of the design claim — the player never learns any of this exists.
  */
-import { fetchPlayers, ValidatorOffline, type ValidatorPlayer } from '@/lib/demo/validator';
+import { fetchPlayers, type ValidatorPlayer } from '@/lib/demo/validator';
 import { useLive } from '@/lib/demo/use-live';
 
 import { Figure, Panel, Placeholder, Problem } from './panel';

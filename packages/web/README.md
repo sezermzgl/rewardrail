@@ -1,51 +1,30 @@
 # @rewardrail/web
 
-Next.js App Router, TypeScript, Tailwind. Two routes:
+Next.js App Router application with two product surfaces:
 
 | Route | What it is |
 | --- | --- |
-| `/` | Placeholder. The landing page specified in `docs/superpowers/specs/2026-09-19-rewardrail-landing-design.md` replaces `app/page.tsx`. |
-| `/demo` | The four-panel testnet demo (#13). |
+| `/` | Responsive RewardRail product landing and interactive settlement preview. |
+| `/demo` | Four-panel Stellar testnet demo for advertiser, player, publisher, and operator. |
 
-```bash
-npm run dev --workspace @rewardrail/web     # http://localhost:3000/demo
-```
+## Run locally
 
-## The demo route
+From the repository root:
 
-Four panels on one page — advertiser, player, publisher, operator — with the
-shared transaction log beneath them. One page on purpose: switching pages
-breaks the flow and scatters the judges' attention.
+    npm install
+    npm run dev -w @rewardrail/web
 
-**The panels keep no local state.** Every figure is re-read rather than patched
-optimistically, because a balance that came from the chain is the auditability
-claim itself. `lib/demo/refresh.tsx` carries one counter; an action in any panel
-makes all four re-read.
+Open `http://localhost:3000` for the landing or `http://localhost:3000/demo` for the live demo.
 
-### Two sources, on purpose
+## Verify
 
-| Panel | Reads from | Works without the validator |
-| --- | --- | --- |
-| Advertiser | Escrow contract, via Soroban RPC | Yes |
-| Publisher | Escrow contract, via Soroban RPC | Yes |
-| Player | Validator — tier and window are off-chain by design | No |
-| Operator | Validator — risk signals are off-chain by design | No |
+    npm run test -w @rewardrail/web
+    npm run lint -w @rewardrail/web
+    npm run typecheck -w @rewardrail/web
+    npm run build -w @rewardrail/web
 
-The tier rule is a business rule that changes far more often than the contract,
-which is why it is not on chain. So the two chain-backed panels stay live with
-no backend running, and the other two say so rather than showing nothing.
+## Demo architecture
 
-A failing read backs off rather than retrying every three seconds into a dead
-port, and the player list is coalesced so three components asking at once
-produce one request.
+The four panels share a transaction log. Advertiser and publisher data read from the escrow contract through Soroban RPC; player and operator data read risk and tier information from the validator. Shared refresh coordination lives under `lib/demo`, while chain configuration lives under `lib/chain`.
 
-## Configuration
-
-Contract ids default to `packages/scripts/deployed.json`, which the setup
-scripts write and the repo tracks, so the panels point at the current
-deployment with nothing to configure. Override with `NEXT_PUBLIC_ESCROW_CONTRACT_ID`,
-`NEXT_PUBLIC_TUSDC_SAC_ID`, `NEXT_PUBLIC_VALIDATOR_URL`, `NEXT_PUBLIC_CAMPAIGN_ID`.
-
-## Libraries
-
-`lib/chain` and `lib/log` import no framework and are documented separately.
+Contract ids default to `packages/scripts/deployed.json`. They can be overridden with `NEXT_PUBLIC_ESCROW_CONTRACT_ID`, `NEXT_PUBLIC_TUSDC_SAC_ID`, `NEXT_PUBLIC_VALIDATOR_URL`, and `NEXT_PUBLIC_CAMPAIGN_ID`.

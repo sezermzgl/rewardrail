@@ -1,13 +1,14 @@
-import type { Metadata } from 'next';
-
-import './globals.css';
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'RewardRail',
-  description: 'A Stellar-based payout and settlement layer for rewarded advertising.',
+  title: "RewardRail — Verified actions. Instant settlement.",
+  description:
+    "Programmable payout and settlement infrastructure for rewarded advertising.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
       <body>{children}</body>
