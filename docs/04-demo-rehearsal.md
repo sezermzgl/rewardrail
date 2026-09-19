@@ -1,6 +1,6 @@
 # Demo rehearsal — backup hashes
 
-*One clean run of the eight-step script on Stellar testnet, 2026-09-19 22:10 UTC.*
+*One clean run of the eight-step script on Stellar testnet, 2026-09-19 22:12 UTC.*
 
 Every hash below was produced by the same endpoints the panels call, in the
 order of the demo script in `01-pitch.md`, and then read back from Horizon to
