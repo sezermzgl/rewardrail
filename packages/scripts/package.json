@@ -6,7 +6,8 @@
   "scripts": {
     "bootstrap": "node src/bootstrap.js",
     "prove-clawback": "node src/prove-clawback.js",
-    "issue-assets": "node src/issue-assets.js"
+    "issue-assets": "node src/issue-assets.js",
+    "signup": "node src/signup.js"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^13.0.0"
