@@ -16,9 +16,13 @@ Built for the Rise In × Stellar Pro Hackathon 2026, Genesis Track. Testnet only
 | [`/play`](https://rewardrail.vercel.app/play) | The player's rewards app — five playable games, and a payout |
 | [`/demo`](https://rewardrail.vercel.app/demo) | Four-panel console: advertiser, player, publisher, operator, with a shared transaction log |
 
-The advertiser and publisher panels read straight from the chain and work on their own. Everything that writes — finishing a game, converting a reward, flagging a fraud, opening or closing a campaign — goes through the validator, which is a separate long-running service because player state, the tier clock and the event feed live in memory. When it is not reachable the site says so and the chain-backed panels stay live.
+The validator runs separately at `rewardrail-validator.onrender.com`, because player state, the tier clock and the event feed live in memory and a service that comes and goes between requests would lose them. Its write endpoints require a key the site attaches server-side; a POST straight at it without one is a 401. Reads are open, so the chain-backed panels work even when it does not.
 
-The public demo runs on campaign 7: 340 USDC, 4.00 per action, 85 plays. It was funded by swapping XLM through Soroswap, not from a faucet.
+A full run through the public URL, as a visitor would: sign in by email, finish a game, earn **1.20**, watch the conversion refused for 60 seconds while the reward is frozen on the ledger, convert once the window closes, and withdraw **58.24 TRY** through the Turkish anchor. Every step returns a hash.
+
+The demo runs on campaign 7 — 340 USDC at 4.00 per action, 85 plays — funded by swapping XLM through Soroswap rather than from a faucet.
+
+**One operational note.** The validator is on a free instance that stops after fifteen minutes idle, so the first request after a quiet spell takes about a minute and comes back with empty in-memory state. A fresh visitor is unaffected: they build their own state from the sign-in. Mid-demo it matters, because a restart makes every clawback window read as closed. Open the console a few minutes before presenting.
 
 ## The problem
 
