@@ -293,6 +293,12 @@ a {
   font-weight: 500;
 }
 
+.hero__note a {
+  color: white;
+  text-decoration-color: rgb(255 255 255 / 45%);
+  text-underline-offset: 3px;
+}
+
 .hero__visual {
   position: relative;
   min-width: 0;
@@ -615,6 +621,23 @@ a {
   font-size: 0.78rem;
 }
 
+.pillar-card__proof {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  color: var(--blue);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.pillar-card__proof:hover {
+  text-decoration: underline;
+}
+
 /* ---------------------------------------------------------- actor demo */
 
 .actor-section {
@@ -807,6 +830,41 @@ a {
 .actor-panel__transaction span { color: rgb(255 255 255 / 62%); }
 .actor-panel__transaction code { margin-left: auto; overflow-wrap: anywhere; color: var(--rail); }
 
+/* It is a link now: the hash resolves in Stellar Expert, which is the whole
+   point of showing one. */
+a.actor-panel__transaction {
+  text-decoration: none;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+a.actor-panel__transaction:hover {
+  background: #331566;
+  transform: translateY(-1px);
+}
+
+/* The section's own exit to the two surfaces that actually run. */
+.actor-section__cta {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  margin-top: 40px;
+  text-align: center;
+}
+
+.actor-section__cta p {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.actor-section__cta > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
 /* ---------------------------------------------------------- closing */
 
 .closing {
@@ -956,6 +1014,19 @@ a {
   color: rgb(255 255 255 / 76%);
   font-size: 0.82rem;
   font-weight: 500;
+}
+
+/* The contract id, so the page ends on something checkable rather than a
+   slogan. Overrides the generic paragraph rule above it. */
+.final-cta__inner > p.final-cta__contract {
+  margin-top: 28px;
+  color: rgb(255 255 255 / 62%);
+  font-size: 0.76rem;
+}
+
+.final-cta__contract a {
+  color: white;
+  text-underline-offset: 3px;
 }
 
 /* ---------------------------------------------------------- footer */
@@ -1369,6 +1440,26 @@ a {
 .dsignin input:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
 .dsignin > p { grid-column: 1 / -1; margin: 0; }
 .dsignin__ok { color: var(--green); font-size: 0.72rem; font-weight: 700; }
+
+/* The player panel's way back to the accounts it is not currently showing.
+   Rehearsals leave accounts behind and they are counted, not dropped. */
+.dmore {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dmore:hover {
+  border-color: var(--muted);
+  color: var(--ink);
+}
 
 /* Game feedback animations. Small, and used by every game in the offerwall
    so a tap reads as a hit rather than a state change. */

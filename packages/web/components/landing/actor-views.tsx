@@ -1,8 +1,21 @@
 "use client";
 
+/**
+ * One settled action, as each of the four parties sees it.
+ *
+ * The figures are not illustrative. They are campaign 8 of the deployed
+ * escrow — 12 USDC at 4.00 per action, two settles, one reward reversed,
+ * 5.20 refunded at close — and the hash under each panel opens that leg in
+ * Stellar Expert. The section used to carry invented numbers and a hash that
+ * resolved nowhere, which is a strange way to illustrate an audit trail.
+ *
+ * It also used to be where every "view live demo" button landed. The real
+ * console and player app are linked at the foot of the section instead.
+ */
 import { useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUpRight, Check, ShieldAlert } from "lucide-react";
-import { actorViews } from "@/data/landing";
+import { ArrowUpRight, Check, Gamepad2, ShieldAlert } from "lucide-react";
+import { actorViews, routes } from "@/data/landing";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 
@@ -37,9 +50,9 @@ export function ActorViews() {
       <div className="container">
         <Reveal>
           <SectionHeading
-            eyebrow="One settlement, four clear views"
+            eyebrow="One recorded run, four views"
             title="Everyone sees the same truth."
-            description="Move through the transaction as each participant sees it. The underlying event—and its proof—never changes."
+            description="Campaign 8 on Stellar testnet: 12.00 USDC locked, two actions settled, one reward reversed, 5.20 refunded at close. Every figure below links to the transaction that produced it."
             align="center"
           />
         </Reveal>
@@ -84,7 +97,7 @@ export function ActorViews() {
             <div className="actor-panel__dashboard">
               <div className="actor-panel__chrome">
                 <span><i /><i /><i /></span>
-                <small>{active.label} console</small>
+                <small>{active.label} console · USDC</small>
               </div>
               <div className="actor-panel__stats">
                 {active.stats.map((stat) => (
@@ -104,12 +117,32 @@ export function ActorViews() {
                   <span>Campaign escrow</span>
                 </div>
               ) : null}
-              <div className="actor-panel__transaction">
-                <span>Latest settlement</span>
-                <code>{active.transaction}</code>
+              <a
+                className="actor-panel__transaction"
+                href={active.proof.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span>{active.proof.label}</span>
+                <code>{active.proof.short}</code>
                 <ArrowUpRight size={15} aria-hidden="true" />
-              </div>
+              </a>
             </div>
+          </div>
+        </Reveal>
+
+        <Reveal className="actor-section__cta" delay={0.12}>
+          <p>
+            The same four panels, live and clickable, against the campaign
+            running right now.
+          </p>
+          <div>
+            <ButtonLink href={routes.console}>
+              Open the live console <ArrowUpRight size={17} aria-hidden="true" />
+            </ButtonLink>
+            <ButtonLink href={routes.player} variant="secondary" className="on-light">
+              Try the player app <Gamepad2 size={16} aria-hidden="true" />
+            </ButtonLink>
           </div>
         </Reveal>
       </div>

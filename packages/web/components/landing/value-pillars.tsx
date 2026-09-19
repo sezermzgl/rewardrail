@@ -1,4 +1,4 @@
-import { ArrowDownLeft, RotateCcw, ScanSearch } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, RotateCcw, ScanSearch } from "lucide-react";
 import { valuePillars } from "@/data/landing";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -35,6 +35,18 @@ export function ValuePillars() {
                   <strong>{pillar.metric}</strong>
                   <span>{pillar.metricLabel}</span>
                 </div>
+                {/* The claim above, as a transaction somebody can open. */}
+                {pillar.proof ? (
+                  <a
+                    className="pillar-card__proof mono"
+                    href={pillar.proof.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {pillar.proof.short}
+                    <ArrowUpRight size={13} aria-hidden="true" />
+                  </a>
+                ) : null}
               </Reveal>
             );
           })}

@@ -1,5 +1,6 @@
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight, Gamepad2 } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button-link";
+import { escrowLink, routes } from "@/data/landing";
 
 export function FinalCta() {
   return (
@@ -12,13 +13,20 @@ export function FinalCta() {
           participant—and back when fraud demands it.
         </p>
         <div className="final-cta__actions">
-          <ButtonLink href="#live-demo">
-            View live demo <ArrowUpRight size={17} aria-hidden="true" />
+          <ButtonLink href={routes.console}>
+            Open the live console <ArrowUpRight size={17} aria-hidden="true" />
           </ButtonLink>
-          <span>
-            <Check size={14} aria-hidden="true" /> No setup required
-          </span>
+          <ButtonLink href={routes.player} variant="secondary">
+            Try the player app <Gamepad2 size={16} aria-hidden="true" />
+          </ButtonLink>
         </div>
+        <p className="final-cta__contract mono">
+          Escrow{" "}
+          <a href={escrowLink.url} target="_blank" rel="noreferrer">
+            {escrowLink.short}
+          </a>{" "}
+          on Stellar testnet
+        </p>
       </div>
     </section>
   );

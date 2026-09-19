@@ -1,5 +1,5 @@
 import { ArrowUpRight, Menu } from "lucide-react";
-import { navItems } from "@/data/landing";
+import { navItems, routes } from "@/data/landing";
 import { ButtonLink } from "@/components/ui/button-link";
 
 function Brand() {
@@ -27,8 +27,8 @@ export function Navbar() {
             </a>
           ))}
         </div>
-        <ButtonLink href="#live-demo" className="navbar__cta">
-          View live demo <ArrowUpRight size={16} aria-hidden="true" />
+        <ButtonLink href={routes.console} className="navbar__cta">
+          Open the console <ArrowUpRight size={16} aria-hidden="true" />
         </ButtonLink>
         <details className="mobile-menu">
           <summary aria-label="Open navigation menu">
@@ -40,7 +40,7 @@ export function Navbar() {
                 {item.label}
               </a>
             ))}
-            <ButtonLink href="#live-demo">View live demo</ButtonLink>
+            <ButtonLink href={routes.console}>Open the console</ButtonLink>
           </div>
         </details>
       </nav>
