@@ -6,6 +6,20 @@ A player finishes a game, and money reaches three parties in seconds — with no
 
 Built for the Rise In × Stellar Pro Hackathon 2026, Genesis Track. Testnet only.
 
+## Live
+
+**<https://rewardrail.vercel.app>**
+
+| Route | What it is |
+| --- | --- |
+| [`/`](https://rewardrail.vercel.app) | The product case |
+| [`/play`](https://rewardrail.vercel.app/play) | The player's rewards app — five playable games, and a payout |
+| [`/demo`](https://rewardrail.vercel.app/demo) | Four-panel console: advertiser, player, publisher, operator, with a shared transaction log |
+
+The advertiser and publisher panels read straight from the chain and work on their own. Everything that writes — finishing a game, converting a reward, flagging a fraud, opening or closing a campaign — goes through the validator, which is a separate long-running service because player state, the tier clock and the event feed live in memory. When it is not reachable the site says so and the chain-backed panels stay live.
+
+The public demo runs on campaign 7: 340 USDC, 4.00 per action, 85 plays. It was funded by swapping XLM through Soroswap, not from a faucet.
+
 ## The problem
 
 In rewarded advertising an advertiser pays for an install, a player earns points for completing a task, and a publisher takes a cut. The model needs micro-amount, instant, cross-border payouts. The rail underneath it is batched, delayed and separate per country, and the consequences are well known:
@@ -169,7 +183,7 @@ cd packages/validator && \
 cd packages/web && npm run dev
 ```
 
-Open <http://localhost:3000/play> to earn, <http://localhost:3000/demo> to watch the money move.
+Open <http://localhost:3000/play> to earn, <http://localhost:3000/demo> to watch the money move. Both are the same code as the deployed site; the only difference is which validator they point at.
 
 `CLAWBACK_WINDOW_SECONDS=10` shortens the window for a live walkthrough; it defaults to 60. Every tunable is in [`.env.example`](.env.example).
 
