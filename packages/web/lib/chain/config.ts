@@ -1,9 +1,12 @@
 /**
  * Network and deployment addresses.
  *
- * Testnet defaults are inline so a panel renders without a .env, which matters
- * during a demo. NEXT_PUBLIC_ prefixes keep the values readable in the browser.
+ * Contract ids default to `packages/scripts/deployed.json`, which the setup
+ * scripts write and the repo tracks. That keeps the panels pointed at whatever
+ * was last deployed with no .env to forget — the escrow id has already changed
+ * once mid-build. An env var still wins, for pointing at a private deployment.
  */
+import deployed from '../../../scripts/deployed.json';
 export const config = {
   horizonUrl:
     process.env.NEXT_PUBLIC_HORIZON_URL ?? 'https://horizon-testnet.stellar.org',
@@ -11,10 +14,10 @@ export const config = {
     process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org',
   networkPassphrase:
     process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ?? 'Test SDF Network ; September 2015',
-  escrowId: process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID ?? '',
+  escrowId: process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID ?? deployed.escrow ?? '',
   /** The validator backend. Not a chain endpoint, but the app's only other one. */
   validatorUrl: process.env.NEXT_PUBLIC_VALIDATOR_URL ?? 'http://localhost:4000',
-  tusdcSacId: process.env.NEXT_PUBLIC_TUSDC_SAC_ID ?? '',
+  tusdcSacId: process.env.NEXT_PUBLIC_TUSDC_SAC_ID ?? deployed.tusdcSac ?? '',
   explorerBase: 'https://stellar.expert/explorer/testnet',
 };
 

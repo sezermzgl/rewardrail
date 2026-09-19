@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/*
+ * Restrained on purpose. The panels are an operator console, not a product
+ * landing page: the numbers are what the judges read, so nothing competes
+ * with them.
+ */
+:root {
+  --bg: #fbfbfa;
+  --panel: #ffffff;
+  --border: #e4e4e1;
+  --ink: #1a1a18;
+  --muted: #6b6b66;
+  --accent: #2f6f4e;
+  --warn: #9a4b28;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131312;
+    --panel: #1b1b1a;
+    --border: #2e2e2c;
+    --ink: #ececeb;
+    --muted: #9a9a94;
+    --accent: #7fc4a0;
+    --warn: #d99167;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #131312;
+  --panel: #1b1b1a;
+  --border: #2e2e2c;
+  --ink: #ececeb;
+  --muted: #9a9a94;
+  --accent: #7fc4a0;
+  --warn: #d99167;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Amounts and hashes line up when they are tabular. */
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
