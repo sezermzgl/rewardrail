@@ -6,6 +6,7 @@
  * One page on purpose. Switching pages breaks the flow and scatters the
  * judges' attention, so everything the demo claims stays visible at once.
  */
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { AdvertiserPanel } from '@/components/demo/advertiser-panel';
@@ -15,11 +16,47 @@ import { PublisherPanel } from '@/components/demo/publisher-panel';
 import { TransactionLog } from '@/components/demo/transaction-log';
 import { config } from '@/lib/chain/config';
 import { RefreshProvider } from '@/lib/demo/refresh';
+import { fetchHealth } from '@/lib/demo/validator';
 
-/** One campaign demonstrates the whole mechanism; more is scope, not proof. */
-const CAMPAIGN_ID = Number(process.env.NEXT_PUBLIC_CAMPAIGN_ID ?? 0);
+/**
+ * Which campaign the console is looking at.
+ *
+ * Campaign ids are global and increment on every open, so a fixed id goes
+ * stale the moment anyone opens one — including the advertiser panel's own
+ * button. The env var is the starting guess, the validator's own answer
+ * replaces it, and opening a campaign moves every panel to the id the contract
+ * just returned.
+ */
+const CONFIGURED_CAMPAIGN_ID = Number(process.env.NEXT_PUBLIC_CAMPAIGN_ID ?? 0);
 
 export default function DemoPage() {
+  const [campaignId, setCampaignId] = useState(CONFIGURED_CAMPAIGN_ID);
+  const [followValidator, setFollowValidator] = useState(true);
+
+  useEffect(() => {
+    if (!followValidator) return;
+    let alive = true;
+    void fetchHealth()
+      .then((health) => {
+        // A campaign opened from the panel wins over the validator's default;
+        // otherwise the console would snap back to it on the next poll.
+        if (alive && followValidator && Number.isInteger(health.demoCampaignId)) {
+          setCampaignId(health.demoCampaignId);
+        }
+      })
+      // The validator being down is a normal state; the chain-backed panels
+      // still read the configured campaign.
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [followValidator]);
+
+  const onCampaignOpened = useCallback((opened: number) => {
+    setFollowValidator(false);
+    setCampaignId(opened);
+  }, []);
+
   return (
     <RefreshProvider>
       <main className="container demo-page">
@@ -43,7 +80,7 @@ export default function DemoPage() {
                 Stellar testnet
               </span>
               <span>
-                campaign <b>{CAMPAIGN_ID}</b>
+                campaign <b>{campaignId}</b>
               </span>
               <span>
                 escrow <b>{config.escrowId.slice(0, 6)}…{config.escrowId.slice(-6)}</b>
@@ -52,10 +89,10 @@ export default function DemoPage() {
           </header>
 
           <div className="demo-grid">
-            <AdvertiserPanel campaignId={CAMPAIGN_ID} />
-            <PlayerPanel campaignId={CAMPAIGN_ID} />
-            <PublisherPanel campaignId={CAMPAIGN_ID} />
-            <OperatorPanel campaignId={CAMPAIGN_ID} />
+            <AdvertiserPanel campaignId={campaignId} onCampaignOpened={onCampaignOpened} />
+            <PlayerPanel campaignId={campaignId} />
+            <PublisherPanel campaignId={campaignId} />
+            <OperatorPanel campaignId={campaignId} />
           </div>
 
           <TransactionLog />
