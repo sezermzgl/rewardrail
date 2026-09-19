@@ -20,10 +20,14 @@ export type Game = {
   title: string;
   /** The fictional developer, so the offerwall reads like a real one. */
   studio: string;
+  /** Shown as a tag on the card, the way a store lists a category. */
+  genre: string;
   /** One line the player sees before starting. */
   goal: string;
   /** Emoji stands in for cover art we are not going to draw. */
   art: string;
+  /** The card's artwork: a CSS gradient, so each game is recognisable. */
+  cover: string;
   /** Roughly how long a run takes, in seconds. Shown in the offerwall. */
   seconds: number;
   Play: React.ComponentType<GamePlayProps>;

@@ -35,3 +35,59 @@ export interface FraudResult {
  */
 export const flagFraud = (campaignId: number, player: string) =>
   post<FraudResult>('/fraud/flag', { campaignId, player });
+
+export interface WithdrawResult {
+  /** Display units, as the contract paid it. */
+  amount: string;
+  tx: TxRef;
+}
+
+/**
+ * Pull a publisher's accrued share out of escrow.
+ *
+ * No minimum and no schedule: the share accrues on every settled action and
+ * the publisher takes it whenever they choose. That is the whole claim of the
+ * publisher panel, and a button is the only way to demonstrate it.
+ *
+ * The contract requires the publisher's own authorization, which a browser
+ * does not hold, so the validator signs with the key it keeps for the demo
+ * publishers. An address it holds no key for comes back as a plain 400.
+ */
+export const withdrawClaim = (campaignId: number, publisher: string) =>
+  post<WithdrawResult>('/publisher/withdraw', { campaignId, publisher });
+
+export interface OpenedCampaign {
+  campaignId: number;
+  tx: TxRef;
+}
+
+/**
+ * Open a campaign and lock its budget in escrow.
+ *
+ * Amounts are whole units, not stroops: a budget of 5 is 5 USDC. The publisher
+ * and the split table fall back to the demo's own, because a form that asks
+ * for basis points before it will open anything is a form nobody fills in
+ * during a four-minute demo.
+ *
+ * The id comes back rather than being chosen. Campaign ids are global and
+ * increment on every open, so the console must follow the id it was given
+ * instead of the one it was configured with.
+ */
+export const openCampaign = (budget: number, perAction: number) =>
+  post<OpenedCampaign>('/campaign/open', { budget, perAction });
+
+export interface ClosedCampaign {
+  /** Display units returned to the advertiser. */
+  refunded: string;
+  tx: TxRef;
+}
+
+/**
+ * Close a campaign and take the unspent budget back.
+ *
+ * This is the advertiser's exit, and the reason the escrow is not a deposit
+ * the platform keeps: whatever no action has released is refunded by the
+ * contract, not by a support ticket.
+ */
+export const closeCampaign = (campaignId: number) =>
+  post<ClosedCampaign>('/campaign/close', { campaignId });

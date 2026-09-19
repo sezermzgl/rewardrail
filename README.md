@@ -48,7 +48,7 @@ Reference transactions, all on testnet:
 | Route | Who it is for |
 | --- | --- |
 | `/` | Landing page — the product case |
-| `/play` | The player's rewards app. Two playable games, an offerwall, and a payout. Never says wallet, seed or gas |
+| `/play` | The player's rewards app. Five playable games, an offerwall, and a payout. Never says wallet, seed or gas |
 | `/demo` | Four-panel console: advertiser, player, publisher, operator, with a shared transaction log |
 
 ## Architecture

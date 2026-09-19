@@ -1,6 +1,16 @@
 # Games
 
-The offerwall the player sees at `/play`. Two playable games ship here; adding a third is one file and one line.
+The offerwall the player sees at `/play`. Five playable games ship here; adding a sixth is one file and one line.
+
+| Game | Studio | Shape |
+| --- | --- | --- |
+| Coin Rush | Northline Games | Tap coins against a clock, chains multiply |
+| Stack Tower | Halcyon Interactive | Timing — overhang is sliced off, the tower narrows |
+| Gem Cascade | Bluepeak Studio | Match-and-collapse, bigger runs score superlinearly |
+| Reflex Grid | Kestrel Works | Hit the lit tile, three lives, shrinking window |
+| Orchard Pairs | Twelvefold | Memory, scored by move count |
+
+All five are click-only and finish in twenty to thirty-five seconds.
 
 ## Why these exist
 
@@ -10,17 +20,28 @@ They are deliberately small. The product is the payout rail, not the games, and 
 
 ## Adding a game
 
-Write a component that takes `onComplete` and calls it once when the player meets the goal:
+Write a component that takes `onComplete` and calls it once when the player meets the goal. Build it on `game-shell.tsx` so it looks like it belongs beside the others:
 
 ```tsx
 'use client';
 
+import { Board, GameHud, Overlay, useClaimOnce } from './game-shell';
 import type { GamePlayProps } from './types';
 
 export function TapTheTarget({ onComplete }: GamePlayProps) {
-  return <button onClick={onComplete}>Finish</button>;
+  const claim = useClaimOnce(onComplete);
+  return (
+    <div className="flex flex-col gap-3">
+      <GameHud score={hits} goal={10} accent="var(--blue)" />
+      <Board background="linear-gradient(180deg, #123 0%, #012 100%)">
+        {/* the board */}
+      </Board>
+    </div>
+  );
 }
 ```
+
+The shell gives you the score readout, the progress bar toward the goal, the win overlay, a countdown, and floating score pops. Five games built independently would drift into five different ideas of what a score looks like, and the offerwall would read as a directory of other people's apps rather than one product.
 
 Then add it to `registry.ts`:
 
@@ -42,17 +63,19 @@ That is the whole integration. Nothing about settlement, the reward payment, the
 
 **Call `onComplete` exactly once.** It settles an action on chain and pays a reward, so a second call pays twice. React runs effects and state updaters more than once under StrictMode, so guard with a ref set in an event handler rather than relying on an effect firing once:
 
+`useClaimOnce` from the shell does this for you:
+
 ```tsx
-const claimed = useRef(false);
-if (reachedGoal && !claimed.current) {
-  claimed.current = true;
-  onComplete();
-}
+const claim = useClaimOnce(onComplete);
+// ...in an event handler, not an effect:
+if (reachedGoal) claim();
 ```
 
-Both shipped games do this, for the reason written in their comments.
+Every shipped game claims through it.
 
-**Click-only.** A keyboard game is a liability on a projector, and a trackpad is the only input a demo is guaranteed to have. Both games here are playable with one pointer.
+**Click-only.** A keyboard game is a liability on a projector, and a trackpad is the only input a demo is guaranteed to have. Every game here is playable with one pointer.
+
+**Give it a goal the player can see coming.** `GameHud` takes a score and a goal and draws the bar. A game that just ends is a transaction; a game with a visible finish line is worth the last few taps.
 
 ## What the player never sees
 

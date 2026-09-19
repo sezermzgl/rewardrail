@@ -189,27 +189,51 @@ function Header({ points, cash }: { points: number; cash: number }) {
 
 function Offerwall({ onPick }: { onPick: (game: Game) => void }) {
   return (
-    <div className="flex flex-col gap-2">
-      <h1 className="text-sm font-semibold">Earn today</h1>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-base font-bold">Earn today</h1>
+        <span className="text-xs" style={{ color: 'var(--muted)' }}>
+          {GAMES.length} games
+        </span>
+      </div>
+
       {GAMES.map((game) => (
         <button
           key={game.id}
           type="button"
           onClick={() => onPick(game)}
-          className="flex items-center gap-3 rounded-xl border p-3 text-left transition-transform active:scale-[0.99]"
-          style={{ borderColor: 'var(--border)', background: 'var(--panel)' }}
+          className="flex items-center gap-3 rounded-2xl p-2.5 text-left transition-transform active:scale-[0.98]"
+          style={{ background: 'var(--panel)', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}
         >
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg text-2xl" style={{ background: 'var(--canvas)' }}>
+          {/* Cover art. A gradient per game is what stops the wall reading
+              as a settings menu with emoji in it. */}
+          <span
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-xl text-2xl"
+            style={{ background: game.cover, boxShadow: 'inset 0 -6px 12px rgba(0,0,0,.18)' }}
+          >
             {game.art}
           </span>
+
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold">{game.title}</span>
-            <span className="block truncate text-xs" style={{ color: 'var(--muted)' }}>
+            <span className="block truncate text-sm font-bold">{game.title}</span>
+            <span className="block truncate text-[11px]" style={{ color: 'var(--muted)' }}>
+              {game.studio} · {game.genre}
+            </span>
+            <span className="mt-0.5 block truncate text-[11px]" style={{ color: 'var(--muted)' }}>
               {game.goal}
             </span>
           </span>
-          <span className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: 'var(--lime)', color: 'var(--ink)' }}>
-            ~{game.seconds}s
+
+          <span className="flex shrink-0 flex-col items-end gap-1">
+            <span
+              className="rounded-full px-2.5 py-1 text-xs font-bold"
+              style={{ background: 'var(--rail)', color: 'var(--ink)' }}
+            >
+              Play
+            </span>
+            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>
+              ~{game.seconds}s
+            </span>
           </span>
         </button>
       ))}
