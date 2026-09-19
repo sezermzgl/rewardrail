@@ -474,7 +474,7 @@
               "key": {
                 "vec": [
                   {
-                    "symbol": "Claim"
+                    "symbol": "Reserve"
                   },
                   {
                     "u64": "0"
@@ -519,7 +519,7 @@
           },
           "ext": "v0"
         },
-        "live_until": 4095
+        "live_until": 518400
       },
       {
         "entry": {
