@@ -29,3 +29,16 @@ test("exposes the primary product story and valid anchors", () => {
     "#live-demo",
   );
 });
+
+test("renders the complete interactive product journey without dead links", () => {
+  const { container } = render(<Page />);
+
+  expect(screen.getByRole("heading", { name: /pay the moment value is created/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /make every dollar explain itself/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /stop paying twice for fraud/i })).toBeInTheDocument();
+  expect(container.querySelector("#live-demo")).toBeInTheDocument();
+  expect(container.querySelector("#security")).toBeInTheDocument();
+  expect(screen.getAllByRole("tab")).toHaveLength(4);
+  expect(screen.getByRole("heading", { name: /see every dollar move/i })).toBeInTheDocument();
+  expect(container.querySelector('a[href=""]')).not.toBeInTheDocument();
+});
