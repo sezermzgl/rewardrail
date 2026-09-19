@@ -56,7 +56,12 @@ export const config = {
   networkPassphrase: process.env.NETWORK_PASSPHRASE ?? Networks.TESTNET,
 
   escrowId: deployed.escrow,
-  tusdcSacId: deployed.tusdcSac,
+  /**
+   * The SAC the escrow settles in. Defaults to the anchor's asset once it is
+   * deployed, because that is the one with a fiat exit; TUSDC remains the
+   * fallback for running the mechanism without an anchor in the loop.
+   */
+  tusdcSacId: process.env.PAYOUT_SAC_ID ?? deployed.anchorSac ?? deployed.tusdcSac,
 
   /**
    * The campaign the demo runs against. The escrow holds many, but every
@@ -78,7 +83,21 @@ export const config = {
 };
 
 export const REWARD = new Asset('REWARD', keys.rewardIssuer.publicKey());
-export const TUSDC = new Asset('TUSDC', keys.tusdcIssuer.publicKey());
+
+/**
+ * The asset a player ends up holding.
+ *
+ * REWARD is ours and reversible; this is the one with a way out to a bank
+ * account, so it is the anchor's asset whenever there is an anchor. Naming it
+ * PAYOUT rather than after any one asset keeps the code honest when the
+ * deployment changes, which it already has once.
+ */
+export const PAYOUT = process.env.PAYOUT_ASSET_ISSUER
+  ? new Asset(process.env.PAYOUT_ASSET_CODE ?? 'USDC', process.env.PAYOUT_ASSET_ISSUER)
+  : new Asset('TUSDC', keys.tusdcIssuer.publicKey());
+
+/** @deprecated name kept while callers migrate to PAYOUT. */
+export const TUSDC = PAYOUT;
 
 export function assertConfigured() {
   if (!config.escrowId) throw new Error('escrow contract id missing from deployed.json');

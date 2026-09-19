@@ -8,6 +8,7 @@ import {
   Contract,
   TransactionBuilder,
   Operation,
+  Memo,
   Address,
   nativeToScVal,
   scValToNative,
@@ -48,13 +49,20 @@ export async function submitClassic({ source, ops, signers }) {
  * The player is the source but holds no XLM, so the sponsor wraps it in a fee
  * bump and pays. This is what lets the player panel never mention a fee.
  */
-export async function submitAsPlayer({ player, sponsor, ops }) {
+export async function submitAsPlayer({ player, sponsor, ops, memo, memoType }) {
   const account = await horizon.loadAccount(player.publicKey());
   const builder = new TransactionBuilder(account, {
     fee: BASE_FEE,
     networkPassphrase: config.networkPassphrase,
   });
   for (const op of ops) builder.addOperation(op);
+
+  // An anchor matches an incoming payment to a withdrawal by its memo, so
+  // sending without one loses the money in their treasury.
+  if (memo !== undefined && memo !== null) {
+    builder.addMemo(memoType === 'id' ? Memo.id(String(memo)) : Memo.text(String(memo)));
+  }
+
   const inner = builder.setTimeout(60).build();
   inner.sign(player);
 
