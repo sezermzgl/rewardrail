@@ -9,15 +9,11 @@
  * the design claim — the player never learns any of this exists. A test holds
  * the line; see player-panel.test.ts.
  */
-import { useCallback } from 'react';
-import { Sparkles, UserRound } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { LogIn, Sparkles, UserRound } from 'lucide-react';
 
-import {
-  completeAction,
-  convertReward,
-  fetchPlayers,
-  type ValidatorPlayer,
-} from '@/lib/demo/validator';
+import { completeAction, convert, signIn } from '@/lib/demo/actions';
+import { fetchPlayers, type ValidatorPlayer } from '@/lib/demo/validator';
 import { useAction } from '@/lib/demo/use-action';
 import { useLatestProof } from '@/lib/demo/use-proof';
 import { useLive } from '@/lib/demo/use-live';
@@ -36,7 +32,7 @@ function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignI
     useCallback(() => completeAction(campaignId, player.publicKey), [campaignId, player.publicKey]),
   );
   const cashOut = useAction(
-    useCallback(() => convertReward(campaignId, player.publicKey), [campaignId, player.publicKey]),
+    useCallback(() => convert(campaignId, player.publicKey), [campaignId, player.publicKey]),
   );
 
   const state = status(player);
@@ -95,6 +91,58 @@ function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignI
   );
 }
 
+/**
+ * Signing in.
+ *
+ * An email and nothing else. This is the panel's strongest single claim: the
+ * account behind it is opened on chain, holds no XLM, and the person who
+ * signed in was asked for nothing they would have to keep safe.
+ */
+function SignInForm() {
+  const [email, setEmail] = useState('');
+  const [result, setResult] = useState<string | null>(null);
+
+  const submit = useAction(
+    useCallback(async () => {
+      const outcome = await signIn(email);
+      setResult(
+        outcome.returning
+          ? `Welcome back, ${outcome.label}.`
+          : `Account ready for ${outcome.label}. Nothing to set up.`,
+      );
+      setEmail('');
+    }, [email]),
+  );
+
+  return (
+    <form
+      className="dsignin"
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit.run();
+      }}
+    >
+      <input
+        type="email"
+        required
+        value={email}
+        placeholder="you@example.com"
+        aria-label="Email address"
+        onChange={(event) => setEmail(event.target.value)}
+      />
+      <Action
+        label="Sign in"
+        onClick={submit.run}
+        pending={submit.pending}
+        disabled={email.trim().length === 0}
+        icon={<LogIn size={14} strokeWidth={2.4} />}
+      />
+      {submit.error ? <Problem>{submit.error}</Problem> : null}
+      {result && !submit.error ? <p className="dsignin__ok">{result}</p> : null}
+    </form>
+  );
+}
+
 export function PlayerPanel({ campaignId }: { campaignId: number }) {
   const { data, error, loading } = useLive<ValidatorPlayer[]>(fetchPlayers, { pollMs: 3000 });
   const proof = useLatestProof(['reward', 'convert']);
@@ -103,7 +151,7 @@ export function PlayerPanel({ campaignId }: { campaignId: number }) {
   return (
     <Panel
       title="Player"
-      role="two accounts"
+      role={`${data?.length ?? 0} ${data?.length === 1 ? 'account' : 'accounts'}`}
       icon={<UserRound size={16} strokeWidth={2.2} />}
       proof={
         <Proof
@@ -114,6 +162,8 @@ export function PlayerPanel({ campaignId }: { campaignId: number }) {
         />
       }
     >
+      <SignInForm />
+
       {loading && !data ? <Note>Loading accounts…</Note> : null}
       {offline ? (
         <Note>

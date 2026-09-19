@@ -5,7 +5,7 @@
  * shortcut and an explicit one: in production the issuer and validator secrets
  * belong in a KMS, not on disk next to the service. The presentation says so.
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -47,6 +47,26 @@ export const playerKeys = new Map(
     return [kp.publicKey(), { label, keypair: kp }];
   }),
 );
+
+const PLAYERS_PATH = join(SCRIPTS, 'players.json');
+
+/**
+ * Remember a player created at runtime.
+ *
+ * The key is written to disk as well as held in memory. A custodial key that
+ * exists only in memory is a player's money lost on the next restart, which is
+ * a different and much worse thing than the tier state a restart is allowed to
+ * forget.
+ */
+export function rememberPlayer(label, keypair) {
+  playerKeys.set(keypair.publicKey(), { label, keypair });
+
+  const all = existsSync(PLAYERS_PATH)
+    ? JSON.parse(readFileSync(PLAYERS_PATH, 'utf8'))
+    : {};
+  all[label] = keypair.secret();
+  writeFileSync(PLAYERS_PATH, JSON.stringify(all, null, 2) + '\n');
+}
 
 export const config = {
   port: Number(process.env.PORT ?? 8787),
