@@ -1,0 +1,196 @@
+{
+  "ranAt": "2026-09-19T22:22:38.003Z",
+  "totalSeconds": 138.2,
+  "campaignId": 6,
+  "escrow": "CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI",
+  "payoutSac": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+  "validator": "GALJPQWLJVU64BAH46LTRHZML23JF4YDGYBHHCRWOK75IEKSF5QAGR6S",
+  "players": {
+    "honest": "GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL",
+    "fraudster": "GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB"
+  },
+  "steps": [
+    {
+      "minute": "0:40",
+      "name": "Campaign opening",
+      "narration": "The budget is locked in a contract, not held by us.",
+      "seconds": 8.6,
+      "txs": [
+        {
+          "label": "open_campaign",
+          "hash": "8b8b9719f7cb176196aa3ec95193a9739be7c3c8b9def9b37b5f3cebf9de25e9",
+          "url": "https://stellar.expert/explorer/testnet/tx/8b8b9719f7cb176196aa3ec95193a9739be7c3c8b9def9b37b5f3cebf9de25e9",
+          "verified": true,
+          "ledger": 4766568
+        }
+      ],
+      "notes": [
+        "campaign 6, 12 USDC at 4 per action"
+      ]
+    },
+    {
+      "minute": "1:10",
+      "name": "Player signup",
+      "narration": "An email and nothing else. No wallet, no seed, no XLM.",
+      "seconds": 9.6,
+      "txs": [
+        {
+          "label": "sponsored account (honest)",
+          "hash": "289fdada451b032ac6f74a73caac4458c38eb6627d157d57de8f16e25b987c2f",
+          "url": "https://stellar.expert/explorer/testnet/tx/289fdada451b032ac6f74a73caac4458c38eb6627d157d57de8f16e25b987c2f",
+          "verified": true,
+          "ledger": 4766569
+        },
+        {
+          "label": "sponsored account (fraudster)",
+          "hash": "97e895370070e864fa79be31026e5b3099ae396207a2f307098cebc34529b3bd",
+          "url": "https://stellar.expert/explorer/testnet/tx/97e895370070e864fa79be31026e5b3099ae396207a2f307098cebc34529b3bd",
+          "verified": true,
+          "ledger": 4766570
+        }
+      ],
+      "notes": [
+        "honest GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL",
+        "fraudster GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB"
+      ]
+    },
+    {
+      "minute": "1:40",
+      "name": "Task completion",
+      "narration": "One verified action, three shares, one transaction.",
+      "seconds": 19.6,
+      "txs": [
+        {
+          "label": "settle (honest)",
+          "hash": "401b57d6a36e1740d50c4adc9c12e53e7d8f2fdca0ee604d57b029a75ebce696",
+          "url": "https://stellar.expert/explorer/testnet/tx/401b57d6a36e1740d50c4adc9c12e53e7d8f2fdca0ee604d57b029a75ebce696",
+          "verified": true,
+          "ledger": 4766571
+        },
+        {
+          "label": "REWARD paid (honest)",
+          "hash": "ff95f6ce1eec01a33755e5dfa6a428d10cfe0400e26d54245558bdf1333d2b47",
+          "url": "https://stellar.expert/explorer/testnet/tx/ff95f6ce1eec01a33755e5dfa6a428d10cfe0400e26d54245558bdf1333d2b47",
+          "verified": true,
+          "ledger": 4766572
+        },
+        {
+          "label": "settle (fraudster)",
+          "hash": "12c6bab75e47807a98dadd554a4b21b898e7aa3afe46ca425fdae1b0f16a1b5a",
+          "url": "https://stellar.expert/explorer/testnet/tx/12c6bab75e47807a98dadd554a4b21b898e7aa3afe46ca425fdae1b0f16a1b5a",
+          "verified": true,
+          "ledger": 4766573
+        },
+        {
+          "label": "REWARD paid (fraudster)",
+          "hash": "dbfad5e14f528d0bc3d415cb284ff93b3ba8943888677e224d0a20e9e72abf29",
+          "url": "https://stellar.expert/explorer/testnet/tx/dbfad5e14f528d0bc3d415cb284ff93b3ba8943888677e224d0a20e9e72abf29",
+          "verified": true,
+          "ledger": 4766574
+        }
+      ],
+      "notes": [
+        "each credited 1.2000000"
+      ]
+    },
+    {
+      "minute": "2:10",
+      "name": "Instant withdrawal",
+      "narration": "No threshold. The fee is a rounding error against the reward.",
+      "seconds": 75.4,
+      "txs": [
+        {
+          "label": "REWARD burned",
+          "hash": "90fca40ec7c415016bff6f4b38f2966351bb9f17cb2fc4893a7395e9737919c8",
+          "url": "https://stellar.expert/explorer/testnet/tx/90fca40ec7c415016bff6f4b38f2966351bb9f17cb2fc4893a7395e9737919c8",
+          "verified": true,
+          "ledger": 4766588
+        },
+        {
+          "label": "payout withdrawn",
+          "hash": "12dba97271f3e36b65f9e3d67a3b6492dd45de2966b94052c5c374d3fd0dd8a7",
+          "url": "https://stellar.expert/explorer/testnet/tx/12dba97271f3e36b65f9e3d67a3b6492dd45de2966b94052c5c374d3fd0dd8a7",
+          "verified": true,
+          "ledger": 4766589
+        }
+      ],
+      "notes": [
+        "waiting out the 60s clawback window — a new account, so the reward is frozen",
+        "1.2000000 USDC now the player's, unreversible"
+      ]
+    },
+    {
+      "minute": "2:40",
+      "name": "Publisher withdrawal",
+      "narration": "Accrued per action, withdrawn on demand, no minimum.",
+      "seconds": 4.6,
+      "txs": [
+        {
+          "label": "withdraw",
+          "hash": "89860a26e7abba5cb43f97e65038a7e5e16cfb3b73534ed7d683a8ecbedb2f1c",
+          "url": "https://stellar.expert/explorer/testnet/tx/89860a26e7abba5cb43f97e65038a7e5e16cfb3b73534ed7d683a8ecbedb2f1c",
+          "verified": true,
+          "ledger": 4766590
+        }
+      ],
+      "notes": [
+        "3.6000000 USDC out of escrow"
+      ]
+    },
+    {
+      "minute": "3:00",
+      "name": "Cash out",
+      "narration": "The anchor confirms the payout, and the bank details never reach us.",
+      "seconds": 5.5,
+      "txs": [],
+      "notes": [
+        "anchor transaction `sep_ueruomhrjd3qqgwzmikx`",
+        "no interactive URL: this anchor is SEP-6, which has no hosted page"
+      ]
+    },
+    {
+      "minute": "3:20",
+      "name": "Fraud scenario",
+      "narration": "The reward comes back. The honest player is untouched.",
+      "seconds": 9.7,
+      "txs": [
+        {
+          "label": "clawback",
+          "hash": "dab6a1d23c12d600accb3395f7e94cf59a53eaf84ccda59394cf4d59404eeff6",
+          "url": "https://stellar.expert/explorer/testnet/tx/dab6a1d23c12d600accb3395f7e94cf59a53eaf84ccda59394cf4d59404eeff6",
+          "verified": true,
+          "ledger": 4766592
+        },
+        {
+          "label": "refund to campaign",
+          "hash": "2ba2a7f315b547b0d399185bc05b84449cf75e27714d50626b9d5ed26be1eb40",
+          "url": "https://stellar.expert/explorer/testnet/tx/2ba2a7f315b547b0d399185bc05b84449cf75e27714d50626b9d5ed26be1eb40",
+          "verified": true,
+          "ledger": 4766593
+        }
+      ],
+      "notes": [
+        "1.2000000 REWARD reversed",
+        "honest player: player already converted — the payout is theirs, the window had closed"
+      ]
+    },
+    {
+      "minute": "3:45",
+      "name": "Campaign closing",
+      "narration": "Unspent budget goes back to the advertiser, by contract.",
+      "seconds": 5.3,
+      "txs": [
+        {
+          "label": "close_campaign",
+          "hash": "345e4aab10b72bac9dac8b28a3f416088a8f591900104677dbbbd2fec4cabb18",
+          "url": "https://stellar.expert/explorer/testnet/tx/345e4aab10b72bac9dac8b28a3f416088a8f591900104677dbbbd2fec4cabb18",
+          "verified": true,
+          "ledger": 4766594
+        }
+      ],
+      "notes": [
+        "5.2000000 USDC refunded"
+      ]
+    }
+  ]
+}

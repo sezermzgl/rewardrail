@@ -1,6 +1,6 @@
 # Demo rehearsal — backup hashes
 
-*One clean run of the eight-step script on Stellar testnet, 2026-09-19 22:12 UTC.*
+*One clean run of the eight-step script on Stellar testnet, 2026-09-19 22:22 UTC.*
 
 Every hash below was produced by the same endpoints the panels call, in the
 order of the demo script in `01-pitch.md`, and then read back from Horizon to
@@ -12,47 +12,47 @@ checked rather than copied.
 
 | | |
 | --- | --- |
-| Campaign | 5 |
+| Campaign | 6 |
 | Escrow | [`CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI`](https://stellar.expert/explorer/testnet/contract/CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI) |
 | Payout asset SAC | [`CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`](https://stellar.expert/explorer/testnet/contract/CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA) |
 | Validator key | [`GALJPQWLJVU64BAH46LTRHZML23JF4YDGYBHHCRWOK75IEKSF5QAGR6S`](https://stellar.expert/explorer/testnet/account/GALJPQWLJVU64BAH46LTRHZML23JF4YDGYBHHCRWOK75IEKSF5QAGR6S) |
-| Honest player | [`GACRC72RDQ2USMGE26AZB35O74ZAQHBJB3RD44SMAG5ZBUWUCNL5FKR3`](https://stellar.expert/explorer/testnet/account/GACRC72RDQ2USMGE26AZB35O74ZAQHBJB3RD44SMAG5ZBUWUCNL5FKR3) |
-| Fraudulent player | [`GBIJFHM6BYO73E3KQRAJI33RRTJBL3TU5J3Z6FN42N2HEBZA5TLIS7TU`](https://stellar.expert/explorer/testnet/account/GBIJFHM6BYO73E3KQRAJI33RRTJBL3TU5J3Z6FN42N2HEBZA5TLIS7TU) |
-| Wall clock | 135s, of which 75.2s is the clawback window |
+| Honest player | [`GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL`](https://stellar.expert/explorer/testnet/account/GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL) |
+| Fraudulent player | [`GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB`](https://stellar.expert/explorer/testnet/account/GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB) |
+| Wall clock | 138.2s, of which 75.4s is the clawback window |
 | Transactions | 13, all verified on Horizon |
 
 ## Timing against the four-minute script
 
 | Slot | Step | Took | Narration |
 | --- | --- | --- | --- |
-| 0:40 | Campaign opening | 5.2s | The budget is locked in a contract, not held by us. |
-| 1:10 | Player signup | 9.4s | An email and nothing else. No wallet, no seed, no XLM. |
-| 1:40 | Task completion | 20s | One verified action, three shares, one transaction. |
-| 2:10 | Instant withdrawal | 75.2s | No threshold. The fee is a rounding error against the reward. |
-| 2:40 | Publisher withdrawal | 4.5s | Accrued per action, withdrawn on demand, no minimum. |
-| 3:00 | Cash out | 5.3s | The anchor's own KYC page, not ours. |
-| 3:20 | Fraud scenario | 10.1s | The reward comes back. The honest player is untouched. |
-| 3:45 | Campaign closing | 5.2s | Unspent budget goes back to the advertiser, by contract. |
+| 0:40 | Campaign opening | 8.6s | The budget is locked in a contract, not held by us. |
+| 1:10 | Player signup | 9.6s | An email and nothing else. No wallet, no seed, no XLM. |
+| 1:40 | Task completion | 19.6s | One verified action, three shares, one transaction. |
+| 2:10 | Instant withdrawal | 75.4s | No threshold. The fee is a rounding error against the reward. |
+| 2:40 | Publisher withdrawal | 4.6s | Accrued per action, withdrawn on demand, no minimum. |
+| 3:00 | Cash out | 5.5s | The anchor confirms the payout, and the bank details never reach us. |
+| 3:20 | Fraud scenario | 9.7s | The reward comes back. The honest player is untouched. |
+| 3:45 | Campaign closing | 5.3s | Unspent budget goes back to the advertiser, by contract. |
 
 ## The hashes
 
 ### 0:40 — Campaign opening
 
-- campaign 5, 12 USDC at 4 per action
+- campaign 6, 12 USDC at 4 per action
 
 | What | Transaction |
 | --- | --- |
-| open_campaign | [`38bf952e19d1f010…`](https://stellar.expert/explorer/testnet/tx/38bf952e19d1f010d4ab755635641591e1a42a9528a1d037e2b016d3b6b55167) |
+| open_campaign | [`8b8b9719f7cb1761…`](https://stellar.expert/explorer/testnet/tx/8b8b9719f7cb176196aa3ec95193a9739be7c3c8b9def9b37b5f3cebf9de25e9) |
 
 ### 1:10 — Player signup
 
-- honest GACRC72RDQ2USMGE26AZB35O74ZAQHBJB3RD44SMAG5ZBUWUCNL5FKR3
-- fraudster GBIJFHM6BYO73E3KQRAJI33RRTJBL3TU5J3Z6FN42N2HEBZA5TLIS7TU
+- honest GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL
+- fraudster GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB
 
 | What | Transaction |
 | --- | --- |
-| sponsored account (honest) | [`121b5a008310e884…`](https://stellar.expert/explorer/testnet/tx/121b5a008310e884173a8a7fe2729b51dfed754bc7dcc616c1076cf31bd15082) |
-| sponsored account (fraudster) | [`e68cf6b20d480412…`](https://stellar.expert/explorer/testnet/tx/e68cf6b20d480412da59e6a95948f7dac32958f3da2a4945515fc3b7f056ad27) |
+| sponsored account (honest) | [`289fdada451b032a…`](https://stellar.expert/explorer/testnet/tx/289fdada451b032ac6f74a73caac4458c38eb6627d157d57de8f16e25b987c2f) |
+| sponsored account (fraudster) | [`97e895370070e864…`](https://stellar.expert/explorer/testnet/tx/97e895370070e864fa79be31026e5b3099ae396207a2f307098cebc34529b3bd) |
 
 ### 1:40 — Task completion
 
@@ -60,10 +60,10 @@ checked rather than copied.
 
 | What | Transaction |
 | --- | --- |
-| settle (honest) | [`3728ae2a6c7b700d…`](https://stellar.expert/explorer/testnet/tx/3728ae2a6c7b700d1460d8548044835a1cdfe64e7d44577fadf7bc109af8e970) |
-| REWARD paid (honest) | [`1f463b489b76d99d…`](https://stellar.expert/explorer/testnet/tx/1f463b489b76d99d7c4f63a9d54cce95881ca8ac5cca3b56f809158d20f4d233) |
-| settle (fraudster) | [`ea05672e2ec568b2…`](https://stellar.expert/explorer/testnet/tx/ea05672e2ec568b20111e7e95470f67f81bf796093b623369eb1ef60fe177910) |
-| REWARD paid (fraudster) | [`e8140e1d53a0089b…`](https://stellar.expert/explorer/testnet/tx/e8140e1d53a0089b3948a68eed510b22fbfa22892934ee1b1cbe123cb1f7ec3c) |
+| settle (honest) | [`401b57d6a36e1740…`](https://stellar.expert/explorer/testnet/tx/401b57d6a36e1740d50c4adc9c12e53e7d8f2fdca0ee604d57b029a75ebce696) |
+| REWARD paid (honest) | [`ff95f6ce1eec01a3…`](https://stellar.expert/explorer/testnet/tx/ff95f6ce1eec01a33755e5dfa6a428d10cfe0400e26d54245558bdf1333d2b47) |
+| settle (fraudster) | [`12c6bab75e47807a…`](https://stellar.expert/explorer/testnet/tx/12c6bab75e47807a98dadd554a4b21b898e7aa3afe46ca425fdae1b0f16a1b5a) |
+| REWARD paid (fraudster) | [`dbfad5e14f528d0b…`](https://stellar.expert/explorer/testnet/tx/dbfad5e14f528d0bc3d415cb284ff93b3ba8943888677e224d0a20e9e72abf29) |
 
 ### 2:10 — Instant withdrawal
 
@@ -72,8 +72,8 @@ checked rather than copied.
 
 | What | Transaction |
 | --- | --- |
-| REWARD burned | [`294f0982a18b52ba…`](https://stellar.expert/explorer/testnet/tx/294f0982a18b52babf46a0d839190bff3464ffe7cd2f3c21bb3edd42a5b91fa3) |
-| payout withdrawn | [`5d66aca67ff685c4…`](https://stellar.expert/explorer/testnet/tx/5d66aca67ff685c49990e7c2963c506d58adfde2ae520b1b3c23ab210cd6e380) |
+| REWARD burned | [`90fca40ec7c41501…`](https://stellar.expert/explorer/testnet/tx/90fca40ec7c415016bff6f4b38f2966351bb9f17cb2fc4893a7395e9737919c8) |
+| payout withdrawn | [`12dba97271f3e36b…`](https://stellar.expert/explorer/testnet/tx/12dba97271f3e36b65f9e3d67a3b6492dd45de2966b94052c5c374d3fd0dd8a7) |
 
 ### 2:40 — Publisher withdrawal
 
@@ -81,11 +81,11 @@ checked rather than copied.
 
 | What | Transaction |
 | --- | --- |
-| withdraw | [`9beb1a33a79b4e7c…`](https://stellar.expert/explorer/testnet/tx/9beb1a33a79b4e7cc71f15d911ac16f870d68eb9c4e4134dd300fe5b20364868) |
+| withdraw | [`89860a26e7abba5c…`](https://stellar.expert/explorer/testnet/tx/89860a26e7abba5cb43f97e65038a7e5e16cfb3b73534ed7d683a8ecbedb2f1c) |
 
 ### 3:00 — Cash out
 
-- anchor transaction `sep_1fonyo3zuss9ufu9zzin`
+- anchor transaction `sep_ueruomhrjd3qqgwzmikx`
 - no interactive URL: this anchor is SEP-6, which has no hosted page
 
 No chain transaction of ours. The withdrawal is opened on the anchor's
@@ -99,8 +99,8 @@ point — the payout details never reach us.
 
 | What | Transaction |
 | --- | --- |
-| clawback | [`2c036d0e88dcf044…`](https://stellar.expert/explorer/testnet/tx/2c036d0e88dcf044becc437c389fdd4e451fe9a923d04a0dbaee48a49de27711) |
-| refund to campaign | [`cc58e0cb2cef96ad…`](https://stellar.expert/explorer/testnet/tx/cc58e0cb2cef96adeefbd4e94420c8da4efd0be7d196f742e81f914d430d9926) |
+| clawback | [`dab6a1d23c12d600…`](https://stellar.expert/explorer/testnet/tx/dab6a1d23c12d600accb3395f7e94cf59a53eaf84ccda59394cf4d59404eeff6) |
+| refund to campaign | [`2ba2a7f315b547b0…`](https://stellar.expert/explorer/testnet/tx/2ba2a7f315b547b0d399185bc05b84449cf75e27714d50626b9d5ed26be1eb40) |
 
 ### 3:45 — Campaign closing
 
@@ -108,7 +108,7 @@ point — the payout details never reach us.
 
 | What | Transaction |
 | --- | --- |
-| close_campaign | [`4187621fa482de60…`](https://stellar.expert/explorer/testnet/tx/4187621fa482de60f8dd7f336253ba0abce609eccd0bdfdd612bb0c0a1473c61) |
+| close_campaign | [`345e4aab10b72bac…`](https://stellar.expert/explorer/testnet/tx/345e4aab10b72bac9dac8b28a3f416088a8f591900104677dbbbd2fec4cabb18) |
 
 ## What the run says
 
@@ -153,39 +153,39 @@ In this order, so the narrative never waits on a search box.
 
 1. The console itself — `/demo`
 2. Escrow contract — https://stellar.expert/explorer/testnet/contract/CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI
-3. Honest player — https://stellar.expert/explorer/testnet/account/GACRC72RDQ2USMGE26AZB35O74ZAQHBJB3RD44SMAG5ZBUWUCNL5FKR3
-4. Fraudulent player — https://stellar.expert/explorer/testnet/account/GBIJFHM6BYO73E3KQRAJI33RRTJBL3TU5J3Z6FN42N2HEBZA5TLIS7TU
-5. 0:40 open_campaign — https://stellar.expert/explorer/testnet/tx/38bf952e19d1f010d4ab755635641591e1a42a9528a1d037e2b016d3b6b55167
-6. 1:10 sponsored account (honest) — https://stellar.expert/explorer/testnet/tx/121b5a008310e884173a8a7fe2729b51dfed754bc7dcc616c1076cf31bd15082
-7. 1:10 sponsored account (fraudster) — https://stellar.expert/explorer/testnet/tx/e68cf6b20d480412da59e6a95948f7dac32958f3da2a4945515fc3b7f056ad27
-8. 1:40 settle (honest) — https://stellar.expert/explorer/testnet/tx/3728ae2a6c7b700d1460d8548044835a1cdfe64e7d44577fadf7bc109af8e970
-9. 1:40 REWARD paid (honest) — https://stellar.expert/explorer/testnet/tx/1f463b489b76d99d7c4f63a9d54cce95881ca8ac5cca3b56f809158d20f4d233
-10. 1:40 settle (fraudster) — https://stellar.expert/explorer/testnet/tx/ea05672e2ec568b20111e7e95470f67f81bf796093b623369eb1ef60fe177910
-11. 1:40 REWARD paid (fraudster) — https://stellar.expert/explorer/testnet/tx/e8140e1d53a0089b3948a68eed510b22fbfa22892934ee1b1cbe123cb1f7ec3c
-12. 2:10 REWARD burned — https://stellar.expert/explorer/testnet/tx/294f0982a18b52babf46a0d839190bff3464ffe7cd2f3c21bb3edd42a5b91fa3
-13. 2:10 payout withdrawn — https://stellar.expert/explorer/testnet/tx/5d66aca67ff685c49990e7c2963c506d58adfde2ae520b1b3c23ab210cd6e380
-14. 2:40 withdraw — https://stellar.expert/explorer/testnet/tx/9beb1a33a79b4e7cc71f15d911ac16f870d68eb9c4e4134dd300fe5b20364868
-15. 3:20 clawback — https://stellar.expert/explorer/testnet/tx/2c036d0e88dcf044becc437c389fdd4e451fe9a923d04a0dbaee48a49de27711
-16. 3:20 refund to campaign — https://stellar.expert/explorer/testnet/tx/cc58e0cb2cef96adeefbd4e94420c8da4efd0be7d196f742e81f914d430d9926
-17. 3:45 close_campaign — https://stellar.expert/explorer/testnet/tx/4187621fa482de60f8dd7f336253ba0abce609eccd0bdfdd612bb0c0a1473c61
+3. Honest player — https://stellar.expert/explorer/testnet/account/GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL
+4. Fraudulent player — https://stellar.expert/explorer/testnet/account/GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB
+5. 0:40 open_campaign — https://stellar.expert/explorer/testnet/tx/8b8b9719f7cb176196aa3ec95193a9739be7c3c8b9def9b37b5f3cebf9de25e9
+6. 1:10 sponsored account (honest) — https://stellar.expert/explorer/testnet/tx/289fdada451b032ac6f74a73caac4458c38eb6627d157d57de8f16e25b987c2f
+7. 1:10 sponsored account (fraudster) — https://stellar.expert/explorer/testnet/tx/97e895370070e864fa79be31026e5b3099ae396207a2f307098cebc34529b3bd
+8. 1:40 settle (honest) — https://stellar.expert/explorer/testnet/tx/401b57d6a36e1740d50c4adc9c12e53e7d8f2fdca0ee604d57b029a75ebce696
+9. 1:40 REWARD paid (honest) — https://stellar.expert/explorer/testnet/tx/ff95f6ce1eec01a33755e5dfa6a428d10cfe0400e26d54245558bdf1333d2b47
+10. 1:40 settle (fraudster) — https://stellar.expert/explorer/testnet/tx/12c6bab75e47807a98dadd554a4b21b898e7aa3afe46ca425fdae1b0f16a1b5a
+11. 1:40 REWARD paid (fraudster) — https://stellar.expert/explorer/testnet/tx/dbfad5e14f528d0bc3d415cb284ff93b3ba8943888677e224d0a20e9e72abf29
+12. 2:10 REWARD burned — https://stellar.expert/explorer/testnet/tx/90fca40ec7c415016bff6f4b38f2966351bb9f17cb2fc4893a7395e9737919c8
+13. 2:10 payout withdrawn — https://stellar.expert/explorer/testnet/tx/12dba97271f3e36b65f9e3d67a3b6492dd45de2966b94052c5c374d3fd0dd8a7
+14. 2:40 withdraw — https://stellar.expert/explorer/testnet/tx/89860a26e7abba5cb43f97e65038a7e5e16cfb3b73534ed7d683a8ecbedb2f1c
+15. 3:20 clawback — https://stellar.expert/explorer/testnet/tx/dab6a1d23c12d600accb3395f7e94cf59a53eaf84ccda59394cf4d59404eeff6
+16. 3:20 refund to campaign — https://stellar.expert/explorer/testnet/tx/2ba2a7f315b547b0d399185bc05b84449cf75e27714d50626b9d5ed26be1eb40
+17. 3:45 close_campaign — https://stellar.expert/explorer/testnet/tx/345e4aab10b72bac9dac8b28a3f416088a8f591900104677dbbbd2fec4cabb18
 
 ## Full hashes
 
 For copying into a terminal or a search box when a link is not to hand.
 
 ```
-0:40  open_campaign                  38bf952e19d1f010d4ab755635641591e1a42a9528a1d037e2b016d3b6b55167
-1:10  sponsored account (honest)     121b5a008310e884173a8a7fe2729b51dfed754bc7dcc616c1076cf31bd15082
-1:10  sponsored account (fraudster)  e68cf6b20d480412da59e6a95948f7dac32958f3da2a4945515fc3b7f056ad27
-1:40  settle (honest)                3728ae2a6c7b700d1460d8548044835a1cdfe64e7d44577fadf7bc109af8e970
-1:40  REWARD paid (honest)           1f463b489b76d99d7c4f63a9d54cce95881ca8ac5cca3b56f809158d20f4d233
-1:40  settle (fraudster)             ea05672e2ec568b20111e7e95470f67f81bf796093b623369eb1ef60fe177910
-1:40  REWARD paid (fraudster)        e8140e1d53a0089b3948a68eed510b22fbfa22892934ee1b1cbe123cb1f7ec3c
-2:10  REWARD burned                  294f0982a18b52babf46a0d839190bff3464ffe7cd2f3c21bb3edd42a5b91fa3
-2:10  payout withdrawn               5d66aca67ff685c49990e7c2963c506d58adfde2ae520b1b3c23ab210cd6e380
-2:40  withdraw                       9beb1a33a79b4e7cc71f15d911ac16f870d68eb9c4e4134dd300fe5b20364868
-3:20  clawback                       2c036d0e88dcf044becc437c389fdd4e451fe9a923d04a0dbaee48a49de27711
-3:20  refund to campaign             cc58e0cb2cef96adeefbd4e94420c8da4efd0be7d196f742e81f914d430d9926
-3:45  close_campaign                 4187621fa482de60f8dd7f336253ba0abce609eccd0bdfdd612bb0c0a1473c61
+0:40  open_campaign                  8b8b9719f7cb176196aa3ec95193a9739be7c3c8b9def9b37b5f3cebf9de25e9
+1:10  sponsored account (honest)     289fdada451b032ac6f74a73caac4458c38eb6627d157d57de8f16e25b987c2f
+1:10  sponsored account (fraudster)  97e895370070e864fa79be31026e5b3099ae396207a2f307098cebc34529b3bd
+1:40  settle (honest)                401b57d6a36e1740d50c4adc9c12e53e7d8f2fdca0ee604d57b029a75ebce696
+1:40  REWARD paid (honest)           ff95f6ce1eec01a33755e5dfa6a428d10cfe0400e26d54245558bdf1333d2b47
+1:40  settle (fraudster)             12c6bab75e47807a98dadd554a4b21b898e7aa3afe46ca425fdae1b0f16a1b5a
+1:40  REWARD paid (fraudster)        dbfad5e14f528d0bc3d415cb284ff93b3ba8943888677e224d0a20e9e72abf29
+2:10  REWARD burned                  90fca40ec7c415016bff6f4b38f2966351bb9f17cb2fc4893a7395e9737919c8
+2:10  payout withdrawn               12dba97271f3e36b65f9e3d67a3b6492dd45de2966b94052c5c374d3fd0dd8a7
+2:40  withdraw                       89860a26e7abba5cb43f97e65038a7e5e16cfb3b73534ed7d683a8ecbedb2f1c
+3:20  clawback                       dab6a1d23c12d600accb3395f7e94cf59a53eaf84ccda59394cf4d59404eeff6
+3:20  refund to campaign             2ba2a7f315b547b0d399185bc05b84449cf75e27714d50626b9d5ed26be1eb40
+3:45  close_campaign                 345e4aab10b72bac9dac8b28a3f416088a8f591900104677dbbbd2fec4cabb18
 ```
 
