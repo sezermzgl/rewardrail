@@ -45,6 +45,7 @@ const ROLES = [
   ['validator', 'signs action proofs, holds no funds'],
   ['advertiser', 'funds campaigns'],
   ['publisher', 'receives publisher shares'],
+  ['platform', 'takes the platform share, authorizes clawback refunds'],
 ];
 
 function loadKeys() {
@@ -66,10 +67,21 @@ async function ensureAccounts() {
   const existing = loadKeys();
   if (existing) {
     section('ACCOUNTS — reusing keys.json');
-    for (const [role] of ROLES) {
-      if (!existing[role]) throw new Error(`keys.json is missing role: ${role}`);
+    let added = false;
+    for (const [role, purpose] of ROLES) {
+      // Roles added after the first run are filled in rather than forcing a
+      // regeneration, which would orphan the already-configured issuer.
+      if (!existing[role]) {
+        existing[role] = await fundedKeypair(`${role.padEnd(14)} (${purpose}, new)`);
+        added = true;
+        continue;
+      }
       await server.loadAccount(existing[role].publicKey());
       log(role.padEnd(14), existing[role].publicKey());
+    }
+    if (added) {
+      saveKeys(existing);
+      log('updated', KEYS_PATH);
     }
     return existing;
   }
