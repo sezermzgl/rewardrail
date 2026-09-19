@@ -52,7 +52,20 @@ export function TransactionLog() {
       className="rounded-lg border p-4"
       style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}
     >
-      <h2 className="mb-3 text-sm font-semibold tracking-tight">Transaction log</h2>
+      <header className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-semibold tracking-tight">Transaction log</h2>
+        {entries.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => transactionLog.clear()}
+            className="text-[12px] underline underline-offset-2"
+            style={{ color: 'var(--muted)' }}
+            title="Rows survive a reload on purpose. Clear them between a rehearsal and the real run."
+          >
+            Clear
+          </button>
+        ) : null}
+      </header>
 
       {entries.length === 0 ? (
         <p className="text-[13px]" style={{ color: 'var(--muted)' }}>
