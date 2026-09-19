@@ -152,32 +152,22 @@ The validator must call `claim_of` afterwards to know what was credited. #17
 wants amounts in the shared log, so that is an extra round trip per action.
 Returning the three amounts would remove it.
 
-## 5. The JS boundary for the validator
+## 5. The JS boundary
 
-`e2e.js` is the reference implementation of every call below; it drives the
-contract through the `stellar` CLI. **The validator cannot do that** — a backend
-shelling out per request is not viable — so `packages/validator` goes through
-Soroban RPC instead, which is what `packages/scripts/src/soroban.js` provides.
+`e2e.js` drives the contract through the `stellar` CLI. A backend cannot shell
+out per request, so `packages/validator/src/chain.js` goes through Soroban RPC
+instead, and `packages/scripts/src/soroban.js` does the same for the scripts
+package. Both exist on purpose: the scripts one is standalone, the validator one
+carries config and key handling.
 
-This is why the SDK was moved to 17: `@stellar/stellar-sdk@13` cannot parse
-protocol 28 Soroban RPC responses at all, failing with `Bad union switch: 4`.
-Classic operations are unaffected, which is why nothing broke before the first
-RPC call was made.
+The SDK had to move to 17 for either to work. `@stellar/stellar-sdk@13` cannot
+parse protocol 28 Soroban RPC responses at all — it fails with
+`Bad union switch: 4`. Classic operations are unaffected, which is why nothing
+broke until the first RPC call was made.
 
-```
-settle({ campaignId, player, publisher, actionId, signature }) -> { txHash }
-withdraw({ campaignId, who })                                  -> { txHash, amount }
-refundClawback({ campaignId, player, amount })                 -> { txHash }
-closeCampaign({ campaignId })                                  -> { txHash, refunded }
-getCampaign(campaignId)                                        -> Campaign
-claimOf(campaignId, who)                                       -> string
-isSettled(actionId)                                            -> bool
-```
-
-Rules: addresses are `G...` strings and amounts are decimal strings at this
-boundary; stroop and XDR conversion happen inside. Every mutating call returns
-`txHash`, because #17 needs one on every row and adding it later means revisiting
-each call site.
+What the boundary still lacks is error mapping. `invokeContract` throws
+`` `${method} rejected: ${JSON.stringify(sent.errorResult)}` ``, so every
+contract error arrives at the API layer as one opaque string. See F1.
 
 ## 6. What this changes in the open issues
 
