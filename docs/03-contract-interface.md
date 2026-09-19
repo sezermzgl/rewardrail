@@ -183,6 +183,25 @@ keeps the POSTs in #14–#16 free of preflight requests, and leaves no CORS
 configuration to get wrong. The validator itself is unchanged; if it is ever
 served to a browser from another origin, it will need the headers.
 
+### F6 — a validator restart makes a frozen reward look spendable
+
+The validator keeps players, task counts and `lastRewardAt` in memory, which it
+documents as acceptable for a demo. One consequence is not: after a restart,
+`lastRewardAt` is null, so `tierOf` reports the clawback window closed and
+`canConvert` true for a player whose reward was paid seconds earlier.
+
+The chain disagrees. Since the 2026-09-19 trustline freeze, the REWARD
+trustline stays unauthorized for the window's duration, so the burn inside
+`/player/convert` fails. The panel offers a cash-out the chain then refuses.
+
+Observed while verifying #15: after restarting the validator, a player holding
+1.2000000 REWARD from a minute earlier showed "Can cash out now".
+
+It matters because a mid-presentation restart is exactly when this happens.
+Reading `lastRewardAt` back from the trustline's authorization state on
+startup, rather than assuming a cold store means a closed window, would keep
+the two in step.
+
 ## 5. The JS boundary
 
 `e2e.js` drives the contract through the `stellar` CLI. A backend cannot shell

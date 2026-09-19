@@ -67,6 +67,61 @@ export function fetchPlayers(): Promise<ValidatorPlayer[]> {
   return promise;
 }
 
+/**
+ * A POST the panels make on the player's behalf.
+ *
+ * The validator answers a refusal with a status and a JSON body, and the body
+ * is the useful part: a locked conversion comes back as 409 with the tier that
+ * explains why. Flattening that into "request failed" would throw away the
+ * only thing worth putting on screen.
+ */
+export async function post<T>(path: string, body: unknown): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${config.validatorUrl}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ValidatorOffline();
+  }
+
+  const payload: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail = payload as { error?: string; detail?: string; reason?: string } | null;
+    throw new Error(detail?.reason ?? detail?.detail ?? detail?.error ?? `request failed (${res.status})`);
+  }
+  return payload as T;
+}
+
+export interface TxRef {
+  hash: string;
+  url: string;
+}
+
+export interface ActionResult {
+  actionId: string;
+  amount: string;
+  settleTx: TxRef;
+  rewardTx: TxRef;
+}
+
+export interface ConvertResult {
+  amount: string;
+  burnTx: TxRef;
+  withdrawTx: TxRef;
+  note?: string;
+}
+
+/** A completed task becomes money: settle on chain, then the reward is paid. */
+export const completeAction = (campaignId: number, player: string) =>
+  post<ActionResult>('/action/complete', { campaignId, player });
+
+/** The moment the reward stops being reversible. */
+export const convertReward = (campaignId: number, player: string) =>
+  post<ConvertResult>('/player/convert', { campaignId, player });
+
 export interface ValidatorHealth {
   ok: boolean;
   escrow: string;

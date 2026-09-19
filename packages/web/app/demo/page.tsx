@@ -33,7 +33,7 @@ export default function DemoPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <AdvertiserPanel campaignId={CAMPAIGN_ID} />
-          <PlayerPanel />
+          <PlayerPanel campaignId={CAMPAIGN_ID} />
           <PublisherPanel campaignId={CAMPAIGN_ID} />
           <OperatorPanel />
         </div>
