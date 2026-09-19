@@ -14,6 +14,7 @@ import {
   config,
   keys,
   playerKeys,
+  rememberPlayer,
   REWARD,
   PAYOUT,
   TUSDC,
@@ -27,6 +28,7 @@ import {
   invokeContractAsPlayer,
   submitClassic,
   submitAsPlayer,
+  createSponsoredPlayer,
   assetBalance,
   payment,
   clawback,
@@ -239,6 +241,54 @@ app.post('/player/reconcile', async (req, res) => {
     res.json({ paid: amount, tx: { hash, url: explorer(hash) }, tier: tierOf(player) });
   } catch (err) {
     fail(res, 400, 'reconcile failed', err.message);
+  }
+});
+
+/**
+ * Sign in by email. No wallet, no seed phrase, no funding step.
+ *
+ * "Sign in" rather than "sign up" on purpose: a known email returns the
+ * account it already has. A player who reopens the app expects their balance,
+ * not a second empty account, and a demo that creates a duplicate on every
+ * click would spend the sponsor's reserves for nothing.
+ *
+ * The account is created with a zero starting balance and its reserves and fee
+ * are the sponsor's. This endpoint is the claim the pitch makes at 1:10, done
+ * live rather than prepared by a script beforehand.
+ */
+app.post('/player/signup', async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return fail(res, 400, 'a valid email is required');
+  }
+
+  for (const [publicKey, held] of playerKeys) {
+    if (held.label === email) {
+      return res.json({ player: publicKey, label: email, returning: true, tier: tierOf(publicKey) });
+    }
+  }
+
+  try {
+    const { player, hash } = await createSponsoredPlayer();
+    rememberPlayer(email, player);
+    registerPlayer(player.publicKey(), email);
+    logEvent({
+      kind: 'signup',
+      actor: player.publicKey(),
+      hash,
+      url: explorer(hash),
+    });
+
+    res.json({
+      player: player.publicKey(),
+      label: email,
+      returning: false,
+      signupTx: { hash, url: explorer(hash) },
+      tier: tierOf(player.publicKey()),
+      note: 'account opened with zero balance; reserves and fee paid by the sponsor',
+    });
+  } catch (err) {
+    fail(res, 400, 'signup failed', err.message);
   }
 });
 

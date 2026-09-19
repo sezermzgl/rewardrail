@@ -6,6 +6,7 @@ import {
   Horizon,
   rpc,
   Contract,
+  Keypair,
   TransactionBuilder,
   Operation,
   Memo,
@@ -16,7 +17,7 @@ import {
   BASE_FEE,
 } from '@stellar/stellar-sdk';
 
-import { config, keys } from './config.js';
+import { config, keys, REWARD, TUSDC } from './config.js';
 
 export const horizon = new Horizon.Server(config.horizonUrl);
 export const soroban = new rpc.Server(config.sorobanRpcUrl);
@@ -245,4 +246,43 @@ export async function invokeContractAsPlayer(method, args, player, sponsor) {
  */
 function simulationSource() {
   return keys.validator;
+}
+
+/**
+ * Open a player account that owns nothing and owes nothing.
+ *
+ * One transaction does all of it, paid and signed by the sponsor. The player
+ * account is created with a zero starting balance — only legal under
+ * sponsorship — and its two trustlines are paid for by the sponsor as well, so
+ * signup costs the player nothing and asks them for nothing.
+ *
+ * The last operation matters as much as the rest: the REWARD issuer carries
+ * AUTH_REQUIRED, so a fresh trustline starts unauthorized and cannot receive
+ * anything. Authorizing it here is what makes a reward payable to this account.
+ *
+ * Signed by sponsor, player and issuer. The player's key was generated a line
+ * earlier in this process, which is what lets the player sign nothing.
+ */
+export async function createSponsoredPlayer() {
+  const player = Keypair.random();
+
+  const hash = await submitClassic({
+    source: keys.sponsor,
+    signers: [keys.sponsor, player, keys.rewardIssuer],
+    ops: [
+      Operation.beginSponsoringFutureReserves({ sponsoredId: player.publicKey() }),
+      Operation.createAccount({ destination: player.publicKey(), startingBalance: '0' }),
+      Operation.changeTrust({ asset: REWARD, source: player.publicKey() }),
+      Operation.changeTrust({ asset: TUSDC, source: player.publicKey() }),
+      Operation.endSponsoringFutureReserves({ source: player.publicKey() }),
+      Operation.setTrustLineFlags({
+        trustor: player.publicKey(),
+        asset: REWARD,
+        flags: { authorized: true },
+        source: keys.rewardIssuer.publicKey(),
+      }),
+    ],
+  });
+
+  return { player, hash };
 }
