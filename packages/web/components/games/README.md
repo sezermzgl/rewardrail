@@ -50,6 +50,8 @@ Then add it to `registry.ts`:
   id: 'tap-the-target',
   title: 'Tap the Target',
   studio: 'Fictional Studio',
+  genre: 'Reaction',
+  cover: 'linear-gradient(135deg, #2c71f1 0%, #066ffa 100%)',
   goal: 'Hit ten targets',
   art: '🎯',
   seconds: 15,
@@ -59,11 +61,9 @@ Then add it to `registry.ts`:
 
 That is the whole integration. Nothing about settlement, the reward payment, the clawback window or the panels changes — a game knows nothing about Stellar, and the payout path is identical for all of them.
 
-## Two rules worth keeping
+## Three rules worth keeping
 
-**Call `onComplete` exactly once.** It settles an action on chain and pays a reward, so a second call pays twice. React runs effects and state updaters more than once under StrictMode, so guard with a ref set in an event handler rather than relying on an effect firing once:
-
-`useClaimOnce` from the shell does this for you:
+**Call `onComplete` exactly once.** It settles an action on chain and pays a reward, so a second call pays twice. React runs effects and state updaters more than once under StrictMode, which makes "it only happens on the winning move" unsafe reasoning. `useClaimOnce` from the shell handles it:
 
 ```tsx
 const claim = useClaimOnce(onComplete);
