@@ -1,23 +1,33 @@
 import { ArrowDownLeft, RotateCcw, ScanSearch } from "lucide-react";
 import { valuePillars } from "@/data/landing";
 import { Reveal } from "@/components/ui/reveal";
+import { SectionHeading } from "@/components/ui/section-heading";
 
 const icons = { thresholds: ArrowDownLeft, audit: ScanSearch, recovery: RotateCcw };
 
 export function ValuePillars() {
   return (
-    <section className="section pillars-section">
+    <section className="pillars">
       <div className="container">
-        <div className="pillars-intro">
-          <p className="eyebrow">Built around the hard parts</p>
-          <h2>Payment infrastructure that fits the unit economics.</h2>
-        </div>
-        <div className="pillars-grid">
+        <Reveal>
+          <SectionHeading
+            eyebrow="Built around the hard parts"
+            title="Payment infrastructure that fits the unit economics."
+            align="center"
+          />
+        </Reveal>
+        <div className="pillars__grid">
           {valuePillars.map((pillar, index) => {
             const Icon = icons[pillar.id];
             return (
-              <Reveal className={`pillar-card pillar-card--${pillar.id}`} delay={index * 0.08} key={pillar.id}>
-                <div className="pillar-card__icon"><Icon size={20} aria-hidden="true" /></div>
+              <Reveal
+                className={`pillar-card pillar-card--${pillar.id}`}
+                delay={index * 0.08}
+                key={pillar.id}
+              >
+                <div className="pillar-card__icon">
+                  <Icon size={22} aria-hidden="true" />
+                </div>
                 <p className="eyebrow">{pillar.eyebrow}</p>
                 <h3>{pillar.title}</h3>
                 <p>{pillar.description}</p>

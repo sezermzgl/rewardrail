@@ -33,7 +33,7 @@ export function ActorViews() {
   }
 
   return (
-    <section className="section actor-section" id="live-demo">
+    <section className="actor-section" id="live-demo">
       <div className="container">
         <Reveal>
           <SectionHeading

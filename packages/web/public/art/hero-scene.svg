@@ -1,0 +1,38 @@
+<svg width="820" height="660" viewBox="0 0 820 660" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <!-- road, behind the device -->
+  <path d="M812 96C650 26 404 46 268 162C160 254 146 384 200 476"
+        stroke="#98D985" stroke-width="48" stroke-linecap="round" fill="none"/>
+
+  <!-- device -->
+  <g transform="rotate(-29 448 336)">
+    <rect x="330" y="118" width="236" height="436" rx="40" fill="#261051"/>
+    <rect x="346" y="134" width="204" height="404" rx="28" fill="#066FFA"/>
+    <rect x="398" y="146" width="100" height="10" rx="5" fill="#261051"/>
+    <rect x="368" y="180" width="160" height="96" rx="18" fill="#2C71F1"/>
+    <rect x="388" y="206" width="120" height="14" rx="7" fill="#FAFAFA" opacity=".62"/>
+    <rect x="388" y="232" width="78" height="14" rx="7" fill="#FAFAFA" opacity=".34"/>
+    <rect x="368" y="300" width="160" height="14" rx="7" fill="#FAFAFA" opacity=".46"/>
+    <rect x="368" y="330" width="104" height="14" rx="7" fill="#FAFAFA" opacity=".26"/>
+    <rect x="368" y="430" width="160" height="56" rx="26" fill="#98D985"/>
+    <rect x="410" y="452" width="76" height="12" rx="6" fill="#261051" opacity=".55"/>
+  </g>
+
+  <!-- road, in front of the device -->
+  <path d="M200 476C258 574 430 620 570 576C692 538 754 448 742 352"
+        stroke="#98D985" stroke-width="48" stroke-linecap="round" fill="none"/>
+
+  <!-- floating value tokens -->
+  <ellipse cx="168" cy="120" rx="34" ry="34" fill="#F4D75E"/>
+  <ellipse cx="168" cy="120" rx="18" ry="18" fill="#FAFAFA" opacity=".3"/>
+  <ellipse cx="704" cy="196" rx="24" ry="24" fill="#F4D75E"/>
+  <rect x="86" y="300" width="42" height="42" rx="10" transform="rotate(-26 107 321)" fill="#B490F6"/>
+  <rect x="742" y="500" width="36" height="36" rx="9" transform="rotate(24 760 518)" fill="#B490F6"/>
+  <ellipse cx="108" cy="560" rx="28" ry="21" transform="rotate(-16 108 560)" fill="#FF9E4D"/>
+  <ellipse cx="612" cy="118" rx="24" ry="18" transform="rotate(12 612 118)" fill="#FF9E4D"/>
+  <rect x="290" y="596" width="32" height="32" rx="8" transform="rotate(34 306 612)" fill="#066FFA"/>
+
+  <!-- clouds -->
+  <path d="M56 214c0-15 13-27 29-27 4-15 18-26 34-26s30 11 34 26h4c16 0 29 12 29 27s-13 27-29 27H85c-16 0-29-12-29-27Z" fill="#FAFAFA"/>
+  <path d="M628 452c0-12 10-22 23-22 3-12 14-21 27-21s24 9 27 21h3c13 0 23 10 23 22s-10 22-23 22h-57c-13 0-23-10-23-22Z" fill="#FAFAFA"/>
+  <path d="M368 58c0-10 8-18 19-18 3-10 12-17 22-17s19 7 22 17h3c11 0 19 8 19 18s-8 18-19 18h-47c-11 0-19-8-19-18Z" fill="#FAFAFA" opacity=".82"/>
+</svg>
