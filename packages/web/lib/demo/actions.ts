@@ -78,3 +78,20 @@ export interface Cashout {
 /** Open a withdrawal at the anchor. Returns the anchor's own KYC page. */
 export const cashout = (player: string, amount: number) =>
   post<Cashout>('/player/cashout', { player, amount });
+
+export interface SignIn {
+  player: string;
+  label: string;
+  /** True when the email already had an account, so nothing was created. */
+  returning: boolean;
+  signupTx?: TxRef;
+}
+
+/**
+ * Sign in by email.
+ *
+ * A known email returns the account it already has; a new one opens a sponsored
+ * account with a zero balance. The player funds nothing, signs nothing and is
+ * asked for nothing beyond the address.
+ */
+export const signIn = (email: string) => post<SignIn>('/player/signup', { email });

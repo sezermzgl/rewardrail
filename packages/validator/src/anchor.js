@@ -37,14 +37,22 @@ export async function anchorToml() {
   cachedToml = {
     homeDomain: domain,
     webAuthEndpoint: value('WEB_AUTH_ENDPOINT'),
+    // An anchor implements one transfer standard or the other, sometimes
+    // both. SEP-24 hands the user an interactive page; SEP-6 returns bank
+    // instructions as data. Which one exists decides how a withdrawal runs.
     transferServerSep24: value('TRANSFER_SERVER_SEP0024'),
+    transferServerSep6: value('TRANSFER_SERVER'),
     signingKey: value('SIGNING_KEY'),
     networkPassphrase: value('NETWORK_PASSPHRASE') ?? Networks.TESTNET,
   };
 
-  if (!cachedToml.webAuthEndpoint || !cachedToml.transferServerSep24) {
-    throw new Error('anchor toml is missing SEP-10 or SEP-24 endpoints');
+  if (!cachedToml.webAuthEndpoint) {
+    throw new Error('anchor toml is missing its SEP-10 endpoint');
   }
+  if (!cachedToml.transferServerSep24 && !cachedToml.transferServerSep6) {
+    throw new Error('anchor toml offers neither SEP-24 nor SEP-6');
+  }
+  cachedToml.protocol = chooseProtocol(cachedToml);
   return cachedToml;
 }
 
@@ -90,7 +98,8 @@ export async function authenticate(playerKeypair) {
 /** What the anchor will accept, and within what bounds. */
 export async function withdrawInfo(assetCode) {
   const toml = await anchorToml();
-  const res = await fetch(`${toml.transferServerSep24}/info`);
+  const base = transferServer(toml);
+  const res = await fetch(`${base}/info`);
   const info = await res.json();
   const asset = info.withdraw?.[assetCode];
   if (!asset?.enabled) {
@@ -98,10 +107,68 @@ export async function withdrawInfo(assetCode) {
   }
   return {
     assetCode,
-    minAmount: asset.min_amount,
-    maxAmount: asset.max_amount,
-    feeFixed: asset.fee_fixed,
-    feePercent: asset.fee_percent,
+    protocol: toml.protocol,
+    // SEP-6 anchors often publish no bounds at all, in which case there are
+    // none to enforce and `null` is the honest answer rather than a guess.
+    minAmount: asset.min_amount ?? null,
+    maxAmount: asset.max_amount ?? null,
+    feeFixed: asset.fee_fixed ?? null,
+    feePercent: asset.fee_percent ?? null,
+    fiat: info.withdraw?.[assetCode]?.types ? Object.keys(asset.types) : [],
+  };
+}
+
+/**
+ * Pick the transfer standard for an anchor that may publish either or both.
+ *
+ * SEP-24 wins a tie. It hands the player to the anchor's own page for KYC and
+ * payout details, which keeps bank details out of our service entirely — the
+ * safer default when we have no reason to prefer otherwise. SEP-6 is used
+ * when it is the only one on offer, and can be forced with ANCHOR_PROTOCOL
+ * for an anchor whose SEP-6 path is the better one.
+ */
+function chooseProtocol(toml) {
+  const forced = process.env.ANCHOR_PROTOCOL;
+  if (forced === 'sep6' || forced === 'sep24') {
+    const endpoint = forced === 'sep6' ? toml.transferServerSep6 : toml.transferServerSep24;
+    if (!endpoint) throw new Error(`anchor does not offer ${forced}`);
+    return forced;
+  }
+  return toml.transferServerSep24 ? 'sep24' : 'sep6';
+}
+
+/**
+ * SEP-6 withdrawal: cash out to a bank account, no interactive page.
+ *
+ * The anchor answers with where to send the asset and what it will pay in
+ * fiat. That makes it a better fit for a payout inside someone else's app
+ * than SEP-24, which hands the user off to the anchor's own web flow.
+ */
+async function startWithdrawalSep6({ playerKeypair, assetCode, amount, token, toml }) {
+  const url = new URL(`${toml.transferServerSep6}/withdraw`);
+  url.searchParams.set('asset_code', assetCode);
+  url.searchParams.set('type', 'bank_account');
+  url.searchParams.set('account', playerKeypair.publicKey());
+  url.searchParams.set('amount', String(amount));
+
+  const res = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
+  const body = await res.json();
+  if (!res.ok || !body.id) {
+    throw new Error(`SEP-6 withdraw failed (${res.status}): ${JSON.stringify(body)}`);
+  }
+
+  return {
+    protocol: 'sep6',
+    id: body.id,
+    token,
+    // Where the player sends the asset for the anchor to pay the fiat out.
+    accountId: body.account_id,
+    memo: body.memo,
+    memoType: body.memo_type,
+    eta: body.eta,
+    feeFixed: body.fee_fixed,
+    feePercent: body.fee_percent,
+    extraInfo: body.extra_info,
   };
 }
 
@@ -115,6 +182,10 @@ export async function withdrawInfo(assetCode) {
 export async function startWithdrawal({ playerKeypair, assetCode, amount }) {
   const toml = await anchorToml();
   const token = await authenticate(playerKeypair);
+
+  if (toml.protocol === 'sep6') {
+    return startWithdrawalSep6({ playerKeypair, assetCode, amount, token, toml });
+  }
 
   const res = await fetch(`${toml.transferServerSep24}/transactions/withdraw/interactive`, {
     method: 'POST',
@@ -130,13 +201,19 @@ export async function startWithdrawal({ playerKeypair, assetCode, amount }) {
     throw new Error(`SEP-24 withdraw failed (${res.status}): ${JSON.stringify(body)}`);
   }
 
-  return { id: body.id, url: body.url, type: body.type, token };
+  return { protocol: 'sep24', id: body.id, url: body.url, type: body.type, token };
 }
 
 /** Poll a withdrawal the player started. */
+/** The endpoint for whichever standard was chosen. */
+function transferServer(toml) {
+  return toml.protocol === 'sep6' ? toml.transferServerSep6 : toml.transferServerSep24;
+}
+
 export async function withdrawalStatus({ id, token }) {
   const toml = await anchorToml();
-  const res = await fetch(`${toml.transferServerSep24}/transaction?id=${id}`, {
+  const base = transferServer(toml);
+  const res = await fetch(`${base}/transaction?id=${id}`, {
     headers: { authorization: `Bearer ${token}` },
   });
   const body = await res.json();
@@ -153,5 +230,9 @@ export async function withdrawalStatus({ id, token }) {
     withdrawAnchorAccount: t.withdraw_anchor_account,
     withdrawMemo: t.withdraw_memo,
     withdrawMemoType: t.withdraw_memo_type,
+    // SEP-6 reports the fiat side explicitly, which is the number the player
+    // actually cares about: what lands in their bank account.
+    amountInAsset: t.amount_in_asset,
+    amountOutAsset: t.amount_out_asset,
   };
 }

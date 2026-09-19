@@ -97,7 +97,10 @@ Decisions are made off chain; value moves on chain. The chain never knows whethe
 | `AUTH_REQUIRED` + `AUTH_REVOCABLE` | Freezing a reward for the clawback window, so the window is enforced by the ledger |
 | Sponsored reserves | Player accounts that hold zero XLM |
 | Fee-bump transactions | Players transact without ever holding XLM |
-| SEP-10 + SEP-24 | Anchor authentication and withdrawal |
+| SEP-10 | Anchor authentication — the player's own key is the identity |
+| SEP-6 | Withdrawal to a Turkish bank account, USDC → TRY |
+| SEP-24 | The interactive withdrawal path, for anchors that offer it |
+| SEP-1 | Every anchor endpoint is discovered from `stellar.toml`, never hardcoded |
 
 ## Running it
 
@@ -132,11 +135,22 @@ npm run prove-auth-lock   # a frozen reward cannot be moved to a second account
 npm run e2e               # the whole demo, end to end, with assertions
 ```
 
+### 3b. Point the payout at the Turkish anchor
+
+```bash
+npm run use-anchor-asset   # trustlines, the SAC, and a campaign funded in USDC
+```
+
+The advertiser needs testnet USDC first, from [faucet.circle.com](https://faucet.circle.com) (20 per request). `npm run fund-from-anchor` does it as a TRY bank transfer instead, once the anchor's deposit leg is back.
+
 ### 4. Run the app
 
 ```bash
-# terminal 1
-cd packages/validator && DEMO_CAMPAIGN_ID=0 npm start
+# terminal 1 — the ids this prints come from the setup scripts above
+cd packages/validator && \
+  ANCHOR_HOME_DOMAIN=tr-mock-anchor.fly.dev ANCHOR_ASSET_CODE=USDC \
+  PAYOUT_ASSET_CODE=USDC PAYOUT_ASSET_ISSUER=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5 \
+  DEMO_CAMPAIGN_ID=3 npm start
 
 # terminal 2
 cd packages/web && npm run dev
@@ -196,15 +210,31 @@ From [skills.stellar.org](https://skills.stellar.org):
 | [docs/03-contract-interface.md](docs/03-contract-interface.md) | The contract's surface as the web layer consumes it |
 | [packages/web/components/games/README.md](packages/web/components/games/README.md) | Adding a game to the offerwall |
 
+## The Turkish lira exit
+
+A player finishes a game and the money reaches a Turkish bank account. That path runs end to end on testnet against the [TR Mock Anchor](https://tr-mock-anchor.fly.dev/):
+
+```
+game finished  →  1.20 USDC settled from escrow
+               →  SEP-10 authentication with the player's own key
+               →  SEP-6 withdrawal, rate locked at 48.54 TRY/USDC
+               →  USDC sent on chain with the anchor's memo
+               →  58.24 TRY paid out, status completed
+```
+
+The payout asset is Circle's testnet USDC, which is what the anchor ramps against TRY. Assets we issue ourselves proved the mechanism but have no exit — no anchor recognises them — so the demo settles in the anchor's asset instead.
+
+Nothing in that flow is stubbed. Endpoints are discovered from the anchor's `stellar.toml`, the SEP-10 challenge is verified against the signing key it publishes, and the anchor confirms the payout itself.
+
 ## What is real and what is not
 
-The contract, the proofs, the clawback, the freeze, the sponsored accounts and the fee-bumps are real and run on testnet. The anchor integration is real: SEP-10 authentication and a SEP-24 withdrawal against a live anchor, returning the anchor's own KYC page.
+Real: the contract, the proofs, clawback, the freeze, sponsored accounts, fee-bumps, and both anchor integrations. The USDC is Circle's own testnet issuance.
 
-The money is not. Testnet assets, a test anchor, and TUSDC issued by us rather than a production stablecoin. Production means a licensed anchor per market — the same protocol against a different counterparty.
+Not real: the bank. The anchor simulates the TRY leg — no IBAN receives money and no KYC is performed. Production means a licensed anchor, and the integration is the same code against a different home domain.
 
 ## Next steps
 
-1. **TRY rails.** Move the payout asset to testnet USDC and withdraw through the [TR Mock Anchor](https://tr-mock-anchor.fly.dev/) over SEP-6, which ramps TRY ↔ USDC directly. The anchor integration is already written against a resolved `stellar.toml`, so this is configuration plus a SEP-6 path.
+1. **The TRY on-ramp.** The off-ramp works; the deposit direction is written and waiting on the anchor, whose payout leg stalls at `pending_anchor`. Once it clears, a campaign budget enters as a bank transfer and the loop closes on both sides — `npm run fund-from-anchor` already runs it.
 2. **Atomic settlement.** Hand the REWARD SAC admin to the escrow so `settle` mints in one transaction. This is the documented pattern and runs in production today as USDT0 — with one hard prerequisite: `set_admin` first, then lock the issuer, never the reverse.
 3. **Real DEX conversion.** Route reward-to-payout conversion through an ecosystem swap protocol rather than a one-to-one internal exchange.
 4. **Pilot with one platform.** A single operator running real campaigns is worth more than breadth, and is the path toward SCF and InstAward.

@@ -10,7 +10,16 @@
  */
 import express from 'express';
 
-import { config, keys, playerKeys, REWARD, TUSDC, assertConfigured } from './config.js';
+import {
+  config,
+  keys,
+  playerKeys,
+  rememberPlayer,
+  REWARD,
+  PAYOUT,
+  TUSDC,
+  assertConfigured,
+} from './config.js';
 import {
   sc,
   explorer,
@@ -19,6 +28,7 @@ import {
   invokeContractAsPlayer,
   submitClassic,
   submitAsPlayer,
+  createSponsoredPlayer,
   assetBalance,
   payment,
   clawback,
@@ -234,6 +244,54 @@ app.post('/player/reconcile', async (req, res) => {
   }
 });
 
+/**
+ * Sign in by email. No wallet, no seed phrase, no funding step.
+ *
+ * "Sign in" rather than "sign up" on purpose: a known email returns the
+ * account it already has. A player who reopens the app expects their balance,
+ * not a second empty account, and a demo that creates a duplicate on every
+ * click would spend the sponsor's reserves for nothing.
+ *
+ * The account is created with a zero starting balance and its reserves and fee
+ * are the sponsor's. This endpoint is the claim the pitch makes at 1:10, done
+ * live rather than prepared by a script beforehand.
+ */
+app.post('/player/signup', async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return fail(res, 400, 'a valid email is required');
+  }
+
+  for (const [publicKey, held] of playerKeys) {
+    if (held.label === email) {
+      return res.json({ player: publicKey, label: email, returning: true, tier: tierOf(publicKey) });
+    }
+  }
+
+  try {
+    const { player, hash } = await createSponsoredPlayer();
+    rememberPlayer(email, player);
+    registerPlayer(player.publicKey(), email);
+    logEvent({
+      kind: 'signup',
+      actor: player.publicKey(),
+      hash,
+      url: explorer(hash),
+    });
+
+    res.json({
+      player: player.publicKey(),
+      label: email,
+      returning: false,
+      signupTx: { hash, url: explorer(hash) },
+      tier: tierOf(player.publicKey()),
+      note: 'account opened with zero balance; reserves and fee paid by the sponsor',
+    });
+  } catch (err) {
+    fail(res, 400, 'signup failed', err.message);
+  }
+});
+
 app.get('/player/tier', (req, res) => {
   const { player } = req.query;
   if (!getPlayer(player)) return fail(res, 404, 'unknown player');
@@ -430,16 +488,19 @@ app.post('/player/cashout', async (req, res) => {
 
   try {
     const info = await withdrawInfo(config.anchorAssetCode);
-    const requested = Number(amount ?? info.minAmount);
+    const requested = Number(amount ?? info.minAmount ?? 1);
 
-    // The anchor's own bounds, surfaced before the player is sent to a page
-    // that would only reject them.
-    if (requested < Number(info.minAmount) || requested > Number(info.maxAmount)) {
+    // The anchor's own bounds, checked before the player is sent anywhere
+    // that would only reject them. Many anchors publish no bounds at all, and
+    // an absent bound is not a bound of zero.
+    const below = info.minAmount != null && requested < Number(info.minAmount);
+    const above = info.maxAmount != null && requested > Number(info.maxAmount);
+    if (below || above) {
       return fail(
         res,
         400,
         'amount outside the anchor limits',
-        `this anchor accepts ${info.minAmount}–${info.maxAmount} ${info.assetCode}`,
+        `this anchor accepts ${info.minAmount ?? 'any'}–${info.maxAmount ?? 'any'} ${info.assetCode}`,
       );
     }
 
@@ -449,20 +510,56 @@ app.post('/player/cashout', async (req, res) => {
       amount: requested,
     });
 
+    /**
+     * SEP-6 expects the wallet to send the asset itself, with a memo the
+     * anchor uses to match the payment to the withdrawal. We are the wallet
+     * here, so we send it — fee-bumped, because the player holds no XLM.
+     *
+     * SEP-24 is the other shape: the anchor collects the asset through its
+     * own interactive page, so there is nothing for us to send.
+     */
+    let deliveryTx = null;
+    if (started.protocol === 'sep6') {
+      if (!started.accountId) {
+        throw new Error('anchor returned no account to send the withdrawal to');
+      }
+      const hash = await submitAsPlayer({
+        player: custodial.keypair,
+        sponsor: keys.sponsor,
+        ops: [
+          payment({
+            destination: started.accountId,
+            asset: PAYOUT,
+            amount: String(requested),
+          }),
+        ],
+        memo: started.memo,
+        memoType: started.memoType,
+      });
+      deliveryTx = { hash, url: explorer(hash) };
+    }
+
     logEvent({
       kind: 'cashout',
       actor: player,
       amount: String(requested),
       anchorTransactionId: started.id,
+      hash: deliveryTx?.hash,
+      url: deliveryTx?.url,
     });
 
     res.json({
+      protocol: started.protocol,
       anchorTransactionId: started.id,
-      interactiveUrl: started.url,
+      // SEP-24 hands the player to the anchor's page; SEP-6 needs no page.
+      interactiveUrl: started.url ?? null,
+      deliveryTx,
       sessionToken: started.token,
       asset: info.assetCode,
       amount: requested,
       limits: { min: info.minAmount, max: info.maxAmount },
+      eta: started.eta ?? null,
+      note: started.extraInfo?.message ?? null,
     });
   } catch (err) {
     fail(res, 502, 'anchor withdrawal failed', err.message);
