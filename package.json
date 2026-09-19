@@ -1,0 +1,11 @@
+{
+  "name": "rewardrail",
+  "private": true,
+  "description": "A Stellar-based payout and settlement layer for rewarded advertising",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+.next/
+out/
+target/
+
+# environment and keys
+.env
+.env.*
+!.env.example
+*.key
+keys.json
+
+# logs
+*.log
+npm-debug.log*
+
+# os
+.DS_Store
