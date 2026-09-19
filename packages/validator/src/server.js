@@ -125,7 +125,7 @@ app.post('/action/complete', async (req, res) => {
     // Claims accumulate across actions, so the payout is the delta this
     // settle produced. Reading the total would pay a returning player their
     // entire history again on every task.
-    const claimBefore = await readContract('claim_of', [
+    const claimBefore = await readContract('reserve_of', [
       sc.u64(campaignId),
       sc.address(player),
     ]);
@@ -143,7 +143,7 @@ app.post('/action/complete', async (req, res) => {
     );
     logEvent({ kind: 'settle', actor: player, hash: settled.hash, url: explorer(settled.hash) });
 
-    const claimAfter = await readContract('claim_of', [
+    const claimAfter = await readContract('reserve_of', [
       sc.u64(campaignId),
       sc.address(player),
     ]);
@@ -199,7 +199,7 @@ app.post('/player/convert', async (req, res) => {
   // The escrow is the source of the money, so the claim decides the amount.
   // The player's REWARD balance should match it; if it does not, something
   // upstream is wrong and paying out the larger of the two would be a bug.
-  const claim = await readContract('claim_of', [sc.u64(campaignId), sc.address(player)]);
+  const claim = await readContract('reserve_of', [sc.u64(campaignId), sc.address(player)]);
   const claimUnits = stroopsToUnits(claim);
   const rewardBalance = await assetBalance(player, REWARD);
 
@@ -230,13 +230,17 @@ app.post('/player/convert', async (req, res) => {
       ],
     });
 
-    // The TUSDC comes out of the escrow, where it has been held as backing
-    // since the action settled. Nothing new is minted.
-    const withdrawal = await invokeContractAsPlayer(
-      'withdraw',
+    // The payout comes out of escrow, where it has been reserved since the
+    // action settled. Nothing is minted.
+    //
+    // The platform calls this, not the player. The escrow will only send a
+    // reserve to the player it belongs to, so the platform can withhold but
+    // never redirect — and the platform is the only party that can confirm
+    // the REWARD above was actually burned.
+    const withdrawal = await invokeContract(
+      'redeem_player',
       [sc.u64(campaignId), sc.address(player)],
-      custodial.keypair,
-      keys.sponsor,
+      keys.platform,
     );
 
     logEvent({
@@ -296,10 +300,12 @@ app.post('/fraud/flag', async (req, res) => {
       url: explorer(clawHash),
     });
 
-    const stroops = BigInt(Math.round(Number(balance) * 10_000_000));
+    // No amount is passed: the contract refunds exactly the player's reserve.
+    // A caller-supplied figure would let the platform inflate the budget past
+    // what the escrow actually holds.
     const refund = await invokeContract(
       'refund_clawback',
-      [sc.u64(campaignId), sc.address(player), sc.i128(stroops)],
+      [sc.u64(campaignId), sc.address(player)],
       keys.platform,
     );
     logEvent({

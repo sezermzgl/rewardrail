@@ -108,8 +108,10 @@ fn settle_accrues_all_three_shares() {
     f.client
         .settle(&f.campaign_id, &f.player, &f.publisher, &action_id, &sig);
 
-    // 30 / 45 / 25 of 0.4 units
-    assert_eq!(f.client.claim_of(&f.campaign_id, &f.player), 1_200_000);
+    // 30 / 45 / 25 of 0.4 units. The player's share is a reserve, not a
+    // claim: it is owed against a REWARD token they still hold.
+    assert_eq!(f.client.reserve_of(&f.campaign_id, &f.player), 1_200_000);
+    assert_eq!(f.client.claim_of(&f.campaign_id, &f.player), 0);
     assert_eq!(f.client.claim_of(&f.campaign_id, &f.publisher), 1_800_000);
     assert_eq!(f.client.claim_of(&f.campaign_id, &f.platform), 1_000_000);
 
@@ -252,14 +254,14 @@ fn clawback_refund_returns_value_to_the_budget_and_voids_the_claim() {
         .settle(&f.campaign_id, &f.player, &f.publisher, &action_id, &sig);
 
     let before = f.client.get_campaign(&f.campaign_id).remaining;
-    f.client
-        .refund_clawback(&f.campaign_id, &f.player, &1_200_000);
+    let refunded = f.client.refund_clawback(&f.campaign_id, &f.player);
 
+    assert_eq!(refunded, 1_200_000);
     assert_eq!(
         f.client.get_campaign(&f.campaign_id).remaining,
         before + 1_200_000
     );
-    assert_eq!(f.client.claim_of(&f.campaign_id, &f.player), 0);
+    assert_eq!(f.client.reserve_of(&f.campaign_id, &f.player), 0);
     // The action stays spent: the reward was reversed, not un-happened.
     assert!(f.client.is_settled(&action_id));
 }
@@ -295,4 +297,93 @@ fn claims_survive_closing_so_earned_shares_stay_withdrawable() {
     let withdrawn = f.client.withdraw(&f.campaign_id, &f.publisher);
     assert_eq!(withdrawn, 1_800_000);
     let _: () = ().into_val(&f.env);
+}
+
+#[test]
+fn a_player_cannot_withdraw_the_escrowed_value_and_keep_the_reward() {
+    let f = setup();
+    let (action_id, sig) = sign_action(&f, 1);
+    f.client
+        .settle(&f.campaign_id, &f.player, &f.publisher, &action_id, &sig);
+
+    // The player holds REWARD off chain at this point. If `withdraw` also
+    // paid them, the same value would be spent twice.
+    let err = f
+        .client
+        .try_withdraw(&f.campaign_id, &f.player)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::NothingToWithdraw);
+    assert_eq!(f.client.reserve_of(&f.campaign_id, &f.player), 1_200_000);
+}
+
+#[test]
+fn redeem_pays_the_player_and_cannot_be_redirected() {
+    let f = setup();
+    let (action_id, sig) = sign_action(&f, 1);
+    f.client
+        .settle(&f.campaign_id, &f.player, &f.publisher, &action_id, &sig);
+
+    let paid = f.client.redeem_player(&f.campaign_id, &f.player);
+    assert_eq!(paid, 1_200_000);
+    assert_eq!(f.token.balance(&f.player), 1_200_000);
+    assert_eq!(f.client.reserve_of(&f.campaign_id, &f.player), 0);
+
+    // Nothing left to redeem, so a replayed redeem pays nothing.
+    let err = f
+        .client
+        .try_redeem_player(&f.campaign_id, &f.player)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::NothingToWithdraw);
+}
+
+#[test]
+fn a_clawback_refund_cannot_exceed_what_the_player_was_owed() {
+    let f = setup();
+    let (action_id, sig) = sign_action(&f, 1);
+    f.client
+        .settle(&f.campaign_id, &f.player, &f.publisher, &action_id, &sig);
+
+    // Refunding twice must not inflate the budget: the reserve is the only
+    // source of the number, and it is zero the second time.
+    f.client.refund_clawback(&f.campaign_id, &f.player);
+    let after_first = f.client.get_campaign(&f.campaign_id).remaining;
+
+    let err = f
+        .client
+        .try_refund_clawback(&f.campaign_id, &f.player)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::NothingToWithdraw);
+    assert_eq!(f.client.get_campaign(&f.campaign_id).remaining, after_first);
+}
+
+/// The accounting invariant the whole design rests on: the escrow never
+/// promises more than it holds.
+#[test]
+fn escrow_balance_always_covers_remaining_plus_everything_owed() {
+    let f = setup();
+
+    let owed = |f: &Fixture| {
+        f.client.get_campaign(&f.campaign_id).remaining
+            + f.client.reserve_of(&f.campaign_id, &f.player)
+            + f.client.claim_of(&f.campaign_id, &f.publisher)
+            + f.client.claim_of(&f.campaign_id, &f.platform)
+    };
+
+    assert_eq!(f.token.balance(&f.client.address), owed(&f));
+
+    for i in 0..3u8 {
+        let (action_id, sig) = sign_action(&f, i);
+        f.client
+            .settle(&f.campaign_id, &f.player, &f.publisher, &action_id, &sig);
+        assert_eq!(f.token.balance(&f.client.address), owed(&f));
+    }
+
+    f.client.withdraw(&f.campaign_id, &f.publisher);
+    assert_eq!(f.token.balance(&f.client.address), owed(&f));
+
+    f.client.redeem_player(&f.campaign_id, &f.player);
+    assert_eq!(f.token.balance(&f.client.address), owed(&f));
 }

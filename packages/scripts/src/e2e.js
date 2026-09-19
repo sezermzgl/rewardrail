@@ -179,19 +179,19 @@ async function main() {
   ]);
   assert(true, 'JS-signed proof verified by the Rust contract');
 
-  const playerClaim = invoke(escrow, keys.sponsor.secret(), 'claim_of', [
+  const playerClaim = invoke(escrow, keys.sponsor.secret(), 'reserve_of', [
     '--campaign_id', campaignId,
-    '--who', honest.publicKey(),
+    '--player', honest.publicKey(),
   ]);
   const publisherClaim = invoke(escrow, keys.sponsor.secret(), 'claim_of', [
     '--campaign_id', campaignId,
     '--who', keys.publisher.publicKey(),
   ]);
-  log('player claim', `${units(asBigInt(playerClaim))} TUSDC`);
+  log('player reserve', `${units(asBigInt(playerClaim))} TUSDC`);
   log('publisher claim', `${units(asBigInt(publisherClaim))} TUSDC`);
   assert(
     asBigInt(playerClaim) === (PER_ACTION * 3000n) / 10_000n,
-    'player share is 30% of the action',
+    'player share is reserved, not claimable',
   );
 
   /* 3 — the reward reaches the player, as a separate classic payment --- */
@@ -279,10 +279,10 @@ async function main() {
   const remainingBefore = invoke(escrow, keys.sponsor.secret(), 'get_campaign', [
     '--campaign_id', campaignId,
   ]);
+  // No amount parameter: the contract refunds exactly the fraudster's reserve.
   invoke(escrow, keys.platform.secret(), 'refund_clawback', [
     '--campaign_id', campaignId,
     '--player', fraudster.publicKey(),
-    '--amount', ((PER_ACTION * 3000n) / 10_000n).toString(),
   ]);
   const remainingAfter = invoke(escrow, keys.sponsor.secret(), 'get_campaign', [
     '--campaign_id', campaignId,
@@ -297,8 +297,23 @@ async function main() {
     'reclaimed value returned to the campaign budget',
   );
 
-  /* 6 — closing returns what was never spent -------------------------- */
-  section('6. CAMPAIGN CLOSING — unspent budget returns');
+  /* 5b — the honest player cashes out of escrow ------------------------ */
+  section('6. PLAYER REDEEM — paid out of escrow, not minted');
+
+  const honestTusdcBefore = await balanceOf(honest.publicKey(), TUSDC);
+  invoke(escrow, keys.platform.secret(), 'redeem_player', [
+    '--campaign_id', campaignId,
+    '--player', honest.publicKey(),
+  ]);
+  const honestTusdcAfter = await balanceOf(honest.publicKey(), TUSDC);
+  log('honest TUSDC', `${honestTusdcBefore} -> ${honestTusdcAfter}`);
+  assert(
+    Number(honestTusdcAfter) > Number(honestTusdcBefore),
+    'player was paid from the escrow reserve',
+  );
+
+  /* 7 — closing returns what was never spent -------------------------- */
+  section('7. CAMPAIGN CLOSING — unspent budget returns');
 
   const advertiserBefore = await balanceOf(keys.advertiser.publicKey(), TUSDC);
   invoke(escrow, keys.advertiser.secret(), 'close_campaign', [

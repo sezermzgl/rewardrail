@@ -49,8 +49,13 @@ pub struct Campaign {
 pub enum DataKey {
     NextId,
     Campaign(u64),
-    /// Accrued, not yet withdrawn: (campaign, account) -> amount.
+    /// Accrued and withdrawable by its owner: (campaign, publisher|platform).
     Claim(u64, Address),
+    /// The player's entitlement. Deliberately not withdrawable by the player:
+    /// the payout is owed against a REWARD token the player still holds, and
+    /// only the platform can confirm that token was burned. Without this
+    /// split a player could withdraw the escrowed value and keep the reward.
+    Reserve(u64, Address),
     /// Spent action ids, the replay guard.
     Spent(BytesN<32>),
 }
@@ -181,13 +186,21 @@ impl Escrow {
         campaign.remaining -= campaign.per_action;
         put_campaign(&env, campaign_id, &campaign);
 
-        add_claim(&env, campaign_id, &player, player_amount);
-        add_claim(&env, campaign_id, &publisher, publisher_amount);
-        add_claim(&env, campaign_id, &campaign.platform, platform_amount);
+        add_amount(&env, &DataKey::Reserve(campaign_id, player), player_amount);
+        add_amount(&env, &DataKey::Claim(campaign_id, publisher), publisher_amount);
+        add_amount(
+            &env,
+            &DataKey::Claim(campaign_id, campaign.platform.clone()),
+            platform_amount,
+        );
 
+        // The replay guard is only as durable as its TTL. Without this bump
+        // the entry expires and the same action becomes payable again.
+        let spent = DataKey::Spent(action_id);
+        env.storage().persistent().set(&spent, &true);
         env.storage()
             .persistent()
-            .set(&DataKey::Spent(action_id), &true);
+            .extend_ttl(&spent, TTL_THRESHOLD, TTL_EXTEND);
 
         Ok(())
     }
@@ -215,32 +228,52 @@ impl Escrow {
 
     /// Return a clawed-back reward to the campaign budget.
     ///
+    /// The amount is the player's own reserve, never a number the caller
+    /// supplies. An `amount` parameter would let the platform inflate
+    /// `remaining` past what the escrow actually holds, and the first
+    /// withdrawal to hit the shortfall would be the one that failed.
+    ///
     /// The action stays marked spent on purpose. The reward was reversed, not
     /// un-happened, and letting the id be reused would reopen the replay hole.
-    pub fn refund_clawback(
-        env: Env,
-        campaign_id: u64,
-        player: Address,
-        amount: i128,
-    ) -> Result<(), Error> {
+    pub fn refund_clawback(env: Env, campaign_id: u64, player: Address) -> Result<i128, Error> {
         let mut campaign = get_campaign(&env, campaign_id)?;
         campaign.platform.require_auth();
 
-        if amount <= 0 {
-            return Err(Error::InvalidAmount);
+        let key = DataKey::Reserve(campaign_id, player);
+        let reserve: i128 = env.storage().persistent().get(&key).unwrap_or(0);
+        if reserve <= 0 {
+            return Err(Error::NothingToWithdraw);
         }
 
-        // Drop the player's unwithdrawn claim first, so the same value cannot
-        // both return to the budget and still be withdrawable.
-        let key = DataKey::Claim(campaign_id, player);
-        let claim: i128 = env.storage().persistent().get(&key).unwrap_or(0);
-        if claim > 0 {
-            env.storage().persistent().set(&key, &0i128);
-        }
-
-        campaign.remaining += amount;
+        env.storage().persistent().set(&key, &0i128);
+        campaign.remaining += reserve;
         put_campaign(&env, campaign_id, &campaign);
-        Ok(())
+        Ok(reserve)
+    }
+
+    /// Pay a player's reserve out to that player.
+    ///
+    /// Only the platform can call this, and the destination is fixed to the
+    /// player, so the platform can withhold but never redirect. The platform
+    /// is the only party that can confirm the matching REWARD was burned,
+    /// which is the condition this payout is owed against.
+    pub fn redeem_player(env: Env, campaign_id: u64, player: Address) -> Result<i128, Error> {
+        let campaign = get_campaign(&env, campaign_id)?;
+        campaign.platform.require_auth();
+
+        let key = DataKey::Reserve(campaign_id, player.clone());
+        let amount: i128 = env.storage().persistent().get(&key).unwrap_or(0);
+        if amount <= 0 {
+            return Err(Error::NothingToWithdraw);
+        }
+
+        env.storage().persistent().set(&key, &0i128);
+        token::Client::new(&env, &campaign.token).transfer(
+            &env.current_contract_address(),
+            &player,
+            &amount,
+        );
+        Ok(amount)
     }
 
     /// Close the campaign and return what was never spent.
@@ -274,6 +307,13 @@ impl Escrow {
         env.storage()
             .persistent()
             .get(&DataKey::Claim(campaign_id, who))
+            .unwrap_or(0)
+    }
+
+    pub fn reserve_of(env: Env, campaign_id: u64, player: Address) -> i128 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Reserve(campaign_id, player))
             .unwrap_or(0)
     }
 
@@ -323,16 +363,15 @@ fn put_campaign(env: &Env, id: u64, campaign: &Campaign) {
         .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
 }
 
-fn add_claim(env: &Env, campaign_id: u64, who: &Address, amount: i128) {
+fn add_amount(env: &Env, key: &DataKey, amount: i128) {
     if amount <= 0 {
         return;
     }
-    let key = DataKey::Claim(campaign_id, who.clone());
-    let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
-    env.storage().persistent().set(&key, &(current + amount));
+    let current: i128 = env.storage().persistent().get(key).unwrap_or(0);
+    env.storage().persistent().set(key, &(current + amount));
     env.storage()
         .persistent()
-        .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
+        .extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND);
 }
 
 #[cfg(test)]
