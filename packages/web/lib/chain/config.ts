@@ -15,8 +15,12 @@ export const config = {
   networkPassphrase:
     process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ?? 'Test SDF Network ; September 2015',
   escrowId: process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID ?? deployed.escrow ?? '',
-  /** The validator backend. Not a chain endpoint, but the app's only other one. */
-  validatorUrl: process.env.NEXT_PUBLIC_VALIDATOR_URL ?? 'http://localhost:4000',
+  /**
+   * The validator, reached through the same-origin proxy in next.config.ts.
+   * It sends no CORS headers, so calling it directly from the browser fails.
+   * Override only for a validator that does send them.
+   */
+  validatorUrl: process.env.NEXT_PUBLIC_VALIDATOR_URL ?? '/api/validator',
   tusdcSacId: process.env.NEXT_PUBLIC_TUSDC_SAC_ID ?? deployed.tusdcSac ?? '',
   explorerBase: 'https://stellar.expert/explorer/testnet',
 };

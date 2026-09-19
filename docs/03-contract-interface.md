@@ -171,6 +171,18 @@ Adding `budget: i128` to `Campaign` closes the spend half for one field. The
 per-campaign balance half needs either a per-campaign accumulator or a panel
 that shows the total and says so.
 
+### F5 — the validator sends no CORS headers
+
+A browser refuses to call it cross-origin, so every panel read and every panel
+action fails with `ERR_FAILED` and nothing but a console message to explain it.
+This blocks #14, #15 and #16 as much as it blocked #13.
+
+Worked around in `packages/web/next.config.ts`: the panels call a same-origin
+`/api/validator/*` path and Next forwards it to `VALIDATOR_ORIGIN`. That also
+keeps the POSTs in #14–#16 free of preflight requests, and leaves no CORS
+configuration to get wrong. The validator itself is unchanged; if it is ever
+served to a browser from another origin, it will need the headers.
+
 ## 5. The JS boundary
 
 `e2e.js` drives the contract through the `stellar` CLI. A backend cannot shell
