@@ -1,32 +1,102 @@
-# Contract Interface Contract
+# Contract Interface
 
-*The agreement that lets the escrow (#5–#8) and the validator (#9–#12) be built in parallel.*
+*What the escrow actually exposes, and what the validator (#9–#12) must match.*
 
-Status: **draft, pending agreement between @KkutaySarii and @sezermzgl.**
-D1 is settled by measurement; D2 and D3 are still proposals.
+The escrow shipped in `d0779be`, so this is no longer a proposal. It records the
+interface as built, the three places the original proposal was resolved
+differently, and the findings that are still open against it.
 
-Nothing here overrides `02-technical-spec.md` on intent. It resolves the places
-where the spec stops short of a signature the two sides can both code against.
+Read `02-technical-spec.md` for intent. Where the two disagree, the contract wins.
 
 ---
 
-## 0. Three decisions the spec leaves open
+## 1. The proof message — the one place a mistake costs hours
 
-### D1 — Who mints REWARD
+The spec describes the signed message as raw 32-byte addresses. **The contract
+does not do that.** `proof_message` builds:
 
-The spec says `settle` "mints the player's share as REWARD". REWARD is a classic
-asset whose clawback authority lives in a classic issuer account; `settle` runs
-in Soroban. `issue-assets.js` deploys a SAC for TUSDC only, and says REWARD "is
-minted per payout" without naming the minter.
+```
+SHA256( campaign_id as big-endian u64
+      || Address::to_xdr(player)
+      || Address::to_xdr(publisher)
+      || action_id (32 bytes) )
+```
 
-| Option | Mechanism | Cost |
+`Address::to_xdr` is `soroban-sdk`'s serialization of the `Val` representation,
+which is the XDR of an **ScVal wrapping an ScAddress** — not a bare ScAddress,
+and not the raw ed25519 key. In JavaScript the matching form is:
+
+```js
+xdr.ScVal.scvAddress(Address.fromString(publicKey).toScAddress()).toXDR()
+```
+
+`e2e.js` already contains this and calls it "the one line worth being careful
+about". It is right: a wrong layout produces a signature that verifies nowhere
+and an error that says nothing useful.
+
+The campaign's `validator` field is different again — there the ed25519 public
+key genuinely is raw 32 bytes, passed as hex.
+
+| Value | Form |
+| --- | --- |
+| `campaign_id` in the digest | big-endian u64, 8 bytes |
+| `player` / `publisher` in the digest | ScVal-wrapped ScAddress XDR |
+| `action_id` | raw 32 bytes |
+| `Campaign.validator` | raw 32-byte ed25519 key |
+| `signature` | raw 64 bytes |
+
+## 2. Functions as built
+
+```
+open_campaign(advertiser, platform, token_address, validator, per_action, budget, splits) -> u64
+settle(campaign_id, player, publisher, action_id, signature)                              -> ()
+withdraw(campaign_id, who)                                                                -> i128
+refund_clawback(campaign_id, player, amount)                                              -> ()
+close_campaign(campaign_id)                                                               -> i128
+get_campaign(campaign_id)                                                                 -> Campaign
+claim_of(campaign_id, who)                                                                -> i128
+is_settled(action_id)                                                                     -> bool
+```
+
+Auth: `open_campaign` needs the advertiser, `withdraw` needs `who`,
+`refund_clawback` needs the campaign's `platform`, `close_campaign` needs the
+advertiser. **`settle` requires no auth at all** — the ed25519 proof is the
+authorization, so anyone may relay a valid one and simply pays the fee. In
+`e2e.js` the sponsor relays.
+
+`settle` accrues **all three shares as claims**, including the player's. The
+player is not special: they `withdraw` TUSDC the same way the publisher does.
+Rounding dust goes to the publisher, who takes `per_action` minus the other two
+rather than its own basis points.
+
+### Errors
+
+```
+1 CampaignNotFound     5 InvalidProof            9 InvalidAmount
+2 CampaignClosed       6 ActionAlreadySettled   10 NoSplits
+3 SplitsMustSumTo10000 7 InsufficientBudget
+4 UnknownPublisher     8 NothingToWithdraw
+```
+
+## 3. How the shipped design differs from the proposal
+
+| Proposed | Shipped | Verdict |
 | --- | --- | --- |
-| **A** | Deploy a REWARD SAC, `set_admin` to the escrow contract, `settle` mints | Payout is atomic. Unverified: whether the classic issuer keeps CLAWBACK authority after admin transfer |
-| **B** | `settle` records a reserve claim only; the validator pays REWARD in a separate classic transaction | Clawback authority stays plainly classic — already proven by `prove-clawback.js`. Payout is two transactions, not one |
+| `operator: Address` | `platform: Address` | Same role, better name — it also receives the platform share |
+| Player share held as a `reserve` | Player share is an ordinary claim | Simpler, and it removes the need for a sixth function |
+| `release_reserve` for conversion | `withdraw` with the player as `who` | The proposal was solving a problem that does not exist |
+| `settle -> SettleResult` | `settle -> ()` | See finding F3 |
+| `Action` record for replay | `Spent(action_id) -> bool` | See finding F2 |
+| `refund_clawback(campaign_id, action_id)` | `refund_clawback(campaign_id, player, amount)` | See finding F2 |
 
-### Measured, not assumed
+### D1 — who mints REWARD
 
-`npm run prove-sac-admin` runs this on testnet. Result:
+The contract chose option B and says why: REWARD's SAC admin is the classic
+issuer, so minting from the contract would need an issuer authorization entry on
+every `settle`. `settle` records the entitlement; the validator pays REWARD as a
+separate classic transaction, as `e2e.js` step 3 shows.
+
+`npm run prove-sac-admin` measured the alternative on testnet:
 
 | Question | Answer |
 | --- | --- |
@@ -37,261 +107,85 @@ minted per payout" without naming the minter.
 | Can the new admin mint through the SAC? | Yes |
 | Can the new admin claw back through the SAC? | Yes |
 
-The risk that argued against A is not there. The classic issuer keeps its
-clawback authority after the admin moves, because issuance and clawback are
-properties of the asset's issuer account in the ledger, not of the SAC wrapper.
+So the stated reason is true only while the admin stays with the issuer. Moving
+it to the escrow contract would let the contract mint under its own auth, with
+no per-settle issuer entry, and the issuer would keep clawback — the premise the
+whole project rests on survives the move.
 
-**Recommendation: A, with one gap left open.** The experiment moved the admin to
-an *account*, because no escrow contract exists yet. Whether a *contract* admin
-behaves identically is untested, and that is the case the design actually needs.
+**That is not an argument to change it now.** B is built, tested and running end
+to end, and the rework lands in the hours the escrow can least afford it. It is
+an argument for knowing the option is real if the demo narrative needs "one
+transaction" to be literally true. The remaining unknown is small: the
+experiment moved the admin to an account, not a contract.
 
-Close that gap in #5 rather than at hour 10: as soon as the escrow scaffold
-deploys, repeat the admin move against the contract address and re-run the
-clawback check. If it fails there, B is still available, and finding out then
-costs a day less than finding out later.
+## 4. Findings still open
 
-Why A is worth it once the risk is gone: the demo script at 1:40 claims "shares
-split in one transaction". Under B the player's REWARD arrives in a second
-transaction — defensible, but softer. Under A it is literally true.
+### F1 — `InvalidProof` is never returned
 
-B's cost, if it is ever chosen as the fallback: a classic REWARD payment that
-fails after `settle` succeeded leaves the action marked spent with no balance
-paid. `action_id` is idempotent, so the fix is a retry of the payment, never a
-re-settle.
+A bad signature reaches `env.crypto().ed25519_verify`, which **traps** rather
+than returning. `Error::InvalidProof = 5` is declared and never constructed; the
+tests assert it with `#[should_panic]`.
 
-### D2 — How REWARD becomes TUSDC
+For #10 this means the two most likely failures — a wrong key, and a proof
+replayed against a different player — both arrive as an indistinguishable host
+trap, not as error 5. "Surface contract rejections as clear API errors" cannot
+be satisfied for the signature path without either verifying manually before the
+call or mapping traps by context.
 
-The pitch says "path payment via the built-in DEX". The spec says the matching
-TUSDC "stays in escrow as reserve and is paid out when the player converts".
-These are different mechanisms, and the DEX route needs REWARD/TUSDC liquidity
-nobody has committed to providing.
+### F2 — `refund_clawback` trusts the caller for the amount
 
-**Resolution: the escrow reserve route. No DEX.** Conversion is two steps:
+It zeroes the player's claim, then adds the caller's `amount` to `remaining`.
+Nothing ties the two together. A wrong `amount` inflates `remaining` past the
+TUSDC the contract actually holds, and the failure surfaces much later as a
+`withdraw` or `close_campaign` that cannot transfer.
 
-1. The player's REWARD is burned — a classic payment from the player back to the
-   REWARD issuer, signed by the backend (custodial key), fee-bumped by the sponsor.
-2. `release_reserve` moves the matching TUSDC out of escrow to the player.
+The fix is small and free: use the claim value it just zeroed. That also matches
+the principle the contract already states about `settle` — the contract decides
+what things are worth, not the caller.
 
-**This requires a sixth contract function.** The spec's five-function table
-cannot express conversion: the escrow holds the TUSDC and only a contract call
-can move it. `release_reserve` is specified in §2 below.
+Worse case: if the player already withdrew, the claim is 0, the TUSDC has left
+the contract, and `remaining` still grows by `amount`.
 
-Order matters. Burn first, then release: a failed release leaves the player
-short and is recoverable by retry, whereas a failed burn after release is a
-double spend.
+### F3 — `settle` returns nothing
 
-### D3 — How much `refund_clawback` returns
+The validator must call `claim_of` afterwards to know what was credited. #17
+wants amounts in the shared log, so that is an extra round trip per action.
+Returning the three amounts would remove it.
 
-Clawback recovers only the player's REWARD. The publisher and platform claims
-were credited at `settle` and are not touched.
+## 5. The JS boundary for the validator
 
-Therefore `remaining` increases by **exactly the player share**,
-`per_action * player_bps / 10000` — not by `per_action`. Crediting the full
-amount double-counts the two shares that never left.
+`e2e.js` is the reference implementation of every call below; it drives the
+contract through the `stellar` CLI. **The validator cannot do that** — a backend
+shelling out per request is not viable — so `packages/validator` goes through
+Soroban RPC instead, which is what `packages/scripts/src/soroban.js` provides.
 
-The same call must decrement the player's reserve by that amount, because the
-REWARD it backed no longer exists.
-
-**Consequence for #6**: replay protection cannot be a boolean. `refund_clawback`
-has to derive the amount itself, and the split depends on which publisher the
-action ran under. `settle` must therefore store a record per `action_id`:
-
-```rust
-pub struct Action {
-    pub player: Address,
-    pub publisher: Address,
-    pub player_share: i128,
-    pub refunded: bool,
-}
-```
-
-Deriving the amount rather than accepting it from the caller is the same
-principle that keeps the amount out of the signed message: the contract is the
-only party that decides what anything is worth.
-
----
-
-## 1. Types and units
-
-| Concern | Decision |
-| --- | --- |
-| Amounts on chain | `i128` in stroops — 7 decimals, 1 TUSDC = 10_000_000 |
-| Amounts over the API | Decimal strings (`"0.4000000"`), converted at the boundary |
-| `campaign_id` | `u64`, assigned by the contract, returned from `open_campaign` |
-| `action_id` | `BytesN<32>` |
-| Proof signature | `BytesN<64>`, ed25519 |
-| Proof public key | `BytesN<32>` — the raw key, not the `G...` string |
-
-The `G...` form is a checksummed encoding of the 32 raw bytes. On the JS side
-the raw form comes from `Keypair.fromPublicKey(g).rawPublicKey()`. Passing the
-`G...` string where 32 bytes are expected is the most likely first bug in #10.
-
-### Two different validator identities
-
-The campaign carries both, and they are not interchangeable:
-
-- `validator: BytesN<32>` — the **ed25519 proof key**. Authorizes payouts by
-  signature. Never needs to be an account.
-- `operator: Address` — the **calling identity** for `release_reserve` and
-  `refund_clawback`, checked with `require_auth()`.
-
-`operator` does not exist in the spec's `Campaign` struct. Without it,
-conversion and clawback refunds are callable by anyone.
-
----
-
-## 2. Functions
-
-```rust
-fn open_campaign(
-    env: Env,
-    advertiser: Address,      // require_auth
-    operator: Address,
-    token: Address,           // TUSDC SAC
-    validator: BytesN<32>,    // ed25519 proof key
-    per_action: i128,
-    budget: i128,
-    splits: Map<Address, Split>,
-) -> u64;                     // campaign_id
-```
-Transfers `budget` from advertiser to the contract. Rejects unless every
-`Split` sums to exactly 10000 and `per_action > 0`.
-
-```rust
-fn settle(
-    env: Env,
-    campaign_id: u64,
-    player: Address,
-    publisher: Address,
-    action_id: BytesN<32>,
-    signature: BytesN<64>,
-) -> SettleResult;
-```
-No `require_auth`. The ed25519 signature is the authorization, so anyone may
-relay a valid proof — the platform simply pays the fee.
-
-Order: reject if `action_id` is known → verify the signature over
-`SHA256(campaign_id_be || player_raw || publisher_raw || action_id)` → reject if
-`remaining < per_action` → decrement `remaining` → credit publisher and platform
-claims → credit `reserve[player]` with the player share → store the `Action`
-record.
-
-Under **D1-A** it mints the player's share by calling the REWARD SAC, whose
-admin is this contract. Under the B fallback it only credits `reserve[player]`
-and the validator pays REWARD separately.
-
-```rust
-pub struct SettleResult {
-    pub player_share: i128,
-    pub publisher_share: i128,
-    pub platform_share: i128,
-    pub remaining: i128,
-}
-```
-The validator needs `player_share` to know how much REWARD to pay, and the
-panels need `remaining`. Returning them avoids a second read.
-
-```rust
-fn withdraw(env: Env, campaign_id: u64, claimant: Address) -> i128;   // require_auth(claimant)
-fn release_reserve(env: Env, campaign_id: u64, player: Address, amount: i128) -> i128;  // require_auth(operator) — NEW, see D2
-fn refund_clawback(env: Env, campaign_id: u64, action_id: BytesN<32>) -> i128;  // require_auth(operator)
-fn close_campaign(env: Env, campaign_id: u64) -> i128;                // require_auth(advertiser)
-```
-
-`withdraw` transfers the full accrued claim and zeroes it. No minimum — the
-no-threshold principle applies here too.
-
-`release_reserve` returns the reserve left. It must reject `amount >
-reserve[player]`; the contract cannot see whether the REWARD burn actually
-happened, so this bound is the only thing preventing a double conversion.
-
-`refund_clawback` returns the new `remaining`. Rejects if the action is unknown
-or already refunded. `action_id` **stays spent** — the action happened, it was
-merely unpaid.
-
-`close_campaign` returns the refunded amount, sets `open = false`, and refuses
-while any claim or reserve is still outstanding.
-
-## 3. Views
-
-The web panels read from the chain and keep no local state (#13). None of these
-exist in the spec, and without them the four panels have nothing to render.
-
-```rust
-fn get_campaign(env: Env, campaign_id: u64) -> Campaign;
-fn get_claim(env: Env, campaign_id: u64, claimant: Address) -> i128;
-fn get_reserve(env: Env, campaign_id: u64, player: Address) -> i128;
-fn get_action(env: Env, campaign_id: u64, action_id: BytesN<32>) -> Option<Action>;
-```
-
-| Panel | Reads |
-| --- | --- |
-| Advertiser | `get_campaign` — budget, remaining, splits, open |
-| Player | `get_reserve` + the classic REWARD balance |
-| Publisher | `get_claim` |
-| Operator | `get_action` |
-
-## 4. Errors
-
-`#[contracterror] #[repr(u32)]`. The numbers are part of the agreement: #10
-maps them to API messages, so renumbering later breaks the validator silently.
-
-| Code | Name | Raised by |
-| --- | --- | --- |
-| 1 | `UnknownCampaign` | all |
-| 2 | `CampaignClosed` | `settle`, `release_reserve` |
-| 3 | `BadSplits` | `open_campaign` |
-| 4 | `UnknownPublisher` | `settle` |
-| 5 | `AlreadySettled` | `settle` |
-| 6 | `BadSignature` | `settle` |
-| 7 | `InsufficientRemaining` | `settle` |
-| 8 | `InsufficientClaim` | `withdraw` |
-| 9 | `InsufficientReserve` | `release_reserve` |
-| 10 | `UnknownAction` | `refund_clawback` |
-| 11 | `AlreadyRefunded` | `refund_clawback` |
-| 12 | `OutstandingBalances` | `close_campaign` |
-| 13 | `NotAuthorized` | any `require_auth` path |
-
-`5`, `6` and `7` are the three the test suite (#8) must prove and the demo may
-have to explain. They deserve the clearest API messages.
-
-## 5. The JS boundary
-
-`packages/validator` codes against this shape. A mock implementation satisfies
-it until #6 lands, and swapping in the real client should touch one module.
+This is why the SDK was moved to 17: `@stellar/stellar-sdk@13` cannot parse
+protocol 28 Soroban RPC responses at all, failing with `Bad union switch: 4`.
+Classic operations are unaffected, which is why nothing broke before the first
+RPC call was made.
 
 ```
-settle({ campaignId, player, publisher, actionId, signature })
-  -> { txHash, playerShare, publisherShare, platformShare, remaining }
-
-withdraw({ campaignId, claimant })              -> { txHash, amount }
-releaseReserve({ campaignId, player, amount })  -> { txHash, reserveLeft }
-refundClawback({ campaignId, actionId })        -> { txHash, remaining }
-closeCampaign({ campaignId })                   -> { txHash, refunded }
-
-getCampaign(campaignId)                         -> Campaign
-getClaim(campaignId, claimant)                  -> string
-getReserve(campaignId, player)                  -> string
-getAction(campaignId, actionId)                 -> Action | null
+settle({ campaignId, player, publisher, actionId, signature }) -> { txHash }
+withdraw({ campaignId, who })                                  -> { txHash, amount }
+refundClawback({ campaignId, player, amount })                 -> { txHash }
+closeCampaign({ campaignId })                                  -> { txHash, refunded }
+getCampaign(campaignId)                                        -> Campaign
+claimOf(campaignId, who)                                       -> string
+isSettled(actionId)                                            -> bool
 ```
 
-Rules at this boundary:
-
-- Addresses are `G...` strings. The raw-bytes conversion happens inside.
-- Amounts are decimal strings. Stroop conversion happens inside.
-- Failures throw an error carrying `.code` and `.name` from §4. Nothing else
-  throws that shape, so the API layer can map blindly.
-- Every mutating call returns `txHash`. #17 needs one on every row, and adding
-  it later means revisiting eight call sites.
+Rules: addresses are `G...` strings and amounts are decimal strings at this
+boundary; stroop and XDR conversion happen inside. Every mutating call returns
+`txHash`, because #17 needs one on every row and adding it later means revisiting
+each call site.
 
 ## 6. What this changes in the open issues
 
 | Issue | Change |
 | --- | --- |
-| #5 | `Campaign` gains `operator: Address`; add the four views of §3; re-run the D1 experiment with the deployed contract as SAC admin |
-| #6 | Replay storage is an `Action` record, not a flag; `settle` returns `SettleResult`; under D1-A it mints REWARD through the SAC |
-| #7 | Add `release_reserve`; `refund_clawback` derives the player share itself and takes no amount |
-| #8 | Add: refund credits the player share only; double conversion is rejected; `close_campaign` refuses while balances are outstanding |
-| #10 | Mock against §5 today; the swap is one module |
-| #11 | Conversion is burn-then-`release_reserve`, no DEX |
-| #12 | Three hashes: clawback, burn, `refund_clawback` |
+| #7 | F2: derive the refund amount from the claim being zeroed |
+| #6 | F1 and F3: return the three amounts; decide how a bad signature should surface |
+| #9 | Config gains `ESCROW_CONTRACT_ID`, `TUSDC_SAC_ID`, the campaign id, and the `platform` key |
+| #10 | Build the digest with ScVal-XDR addresses, not raw keys; expect traps, not error 5 |
+| #11 | Conversion is: burn REWARD classically, then `withdraw` the player's TUSDC claim. No sixth function, no DEX |
+| #12 | Three hashes: classic clawback, burn, `refund_clawback` |
