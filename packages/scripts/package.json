@@ -12,6 +12,6 @@
     "e2e": "node src/e2e.js"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^13.0.0"
+    "@stellar/stellar-sdk": "^17.1.0"
   }
 }
