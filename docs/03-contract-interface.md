@@ -3,6 +3,7 @@
 *The agreement that lets the escrow (#5–#8) and the validator (#9–#12) be built in parallel.*
 
 Status: **draft, pending agreement between @KkutaySarii and @sezermzgl.**
+D1 is settled by measurement; D2 and D3 are still proposals.
 
 Nothing here overrides `02-technical-spec.md` on intent. It resolves the places
 where the spec stops short of a signature the two sides can both code against.
@@ -23,20 +24,40 @@ minted per payout" without naming the minter.
 | **A** | Deploy a REWARD SAC, `set_admin` to the escrow contract, `settle` mints | Payout is atomic. Unverified: whether the classic issuer keeps CLAWBACK authority after admin transfer |
 | **B** | `settle` records a reserve claim only; the validator pays REWARD in a separate classic transaction | Clawback authority stays plainly classic — already proven by `prove-clawback.js`. Payout is two transactions, not one |
 
-**Recommendation: B.** The project's single load-bearing claim is clawback, and
-B leaves the mechanism that has already been proven on testnet untouched. A's
-atomicity is worth less than the risk of discovering at hour 10 that
-`set_admin` silently broke clawback.
+### Measured, not assumed
 
-**Before choosing A, run the experiment**: deploy a REWARD SAC, transfer admin
-to a contract, then attempt a classic CLAWBACK from the issuer. Twenty minutes,
-and it is the same shape as `prove-clawback.js`. Do not take either answer on
-faith.
+`npm run prove-sac-admin` runs this on testnet. Result:
 
-B's honest cost, stated plainly to judges: if the classic REWARD payment fails
-after `settle` succeeded, the action is marked spent but the player has no
-balance. `action_id` is idempotent, so the fix is a retry of the payment, never
-a re-settle.
+| Question | Answer |
+| --- | --- |
+| Does deploying a SAC disturb classic clawback? | No |
+| Does `set_admin` away from the issuer succeed? | Yes |
+| Does classic CLAWBACK still work afterwards? | **Yes** |
+| Does classic issuance still work afterwards? | Yes |
+| Can the new admin mint through the SAC? | Yes |
+| Can the new admin claw back through the SAC? | Yes |
+
+The risk that argued against A is not there. The classic issuer keeps its
+clawback authority after the admin moves, because issuance and clawback are
+properties of the asset's issuer account in the ledger, not of the SAC wrapper.
+
+**Recommendation: A, with one gap left open.** The experiment moved the admin to
+an *account*, because no escrow contract exists yet. Whether a *contract* admin
+behaves identically is untested, and that is the case the design actually needs.
+
+Close that gap in #5 rather than at hour 10: as soon as the escrow scaffold
+deploys, repeat the admin move against the contract address and re-run the
+clawback check. If it fails there, B is still available, and finding out then
+costs a day less than finding out later.
+
+Why A is worth it once the risk is gone: the demo script at 1:40 claims "shares
+split in one transaction". Under B the player's REWARD arrives in a second
+transaction — defensible, but softer. Under A it is literally true.
+
+B's cost, if it is ever chosen as the fallback: a classic REWARD payment that
+fails after `settle` succeeded leaves the action marked spent with no balance
+paid. `action_id` is idempotent, so the fix is a retry of the payment, never a
+re-settle.
 
 ### D2 — How REWARD becomes TUSDC
 
@@ -155,7 +176,9 @@ Order: reject if `action_id` is known → verify the signature over
 claims → credit `reserve[player]` with the player share → store the `Action`
 record.
 
-Under **D1-B** it does **not** move REWARD. The validator does that next.
+Under **D1-A** it mints the player's share by calling the REWARD SAC, whose
+admin is this contract. Under the B fallback it only credits `reserve[player]`
+and the validator pays REWARD separately.
 
 ```rust
 pub struct SettleResult {
@@ -265,8 +288,8 @@ Rules at this boundary:
 
 | Issue | Change |
 | --- | --- |
-| #5 | `Campaign` gains `operator: Address`; add the four views of §3 |
-| #6 | Replay storage is an `Action` record, not a flag; `settle` returns `SettleResult`; under D1-B it does not touch REWARD |
+| #5 | `Campaign` gains `operator: Address`; add the four views of §3; re-run the D1 experiment with the deployed contract as SAC admin |
+| #6 | Replay storage is an `Action` record, not a flag; `settle` returns `SettleResult`; under D1-A it mints REWARD through the SAC |
 | #7 | Add `release_reserve`; `refund_clawback` derives the player share itself and takes no amount |
 | #8 | Add: refund credits the player share only; double conversion is rejected; `close_campaign` refuses while balances are outstanding |
 | #10 | Mock against §5 today; the swap is one module |
