@@ -88,9 +88,13 @@ Clawback lets an issuer pull back an asset it issued from an account. The asset 
 
 For a general-purpose financial token this counts as a flaw. For an advertising reward it is the opposite: a reward is already a conditional promise, and it needs to be reversible when the condition is violated. This is the technical answer to fraud, the industry's most expensive problem.
 
-### An honest limit
+### The exit is a real anchor, not a mock
 
-Real fiat cash-out needs an anchor, and that cannot be set up to production standard within a hackathon. The demo shows the exit through a testnet anchor or a simulated SEP-24 flow, and says so openly.
+The demo cashes out through the SDF reference anchor on testnet. Nothing about that path is simulated: the player's account authenticates over SEP-10 against the anchor's own challenge, a SEP-24 withdrawal is opened on the anchor's server, and the interactive URL that comes back is the anchor's KYC and payout page. The player completes it with the anchor; the payout details never reach us.
+
+What is not real is the money. It is a test deployment that pays no fiat, its asset is SRT rather than a production stablecoin, and it accepts withdrawals between 1 and 10 SRT. Production means a licensed anchor in each market. The mechanism is identical; the counterparty is not.
+
+This distinction is worth stating before a judge asks, because the difference between "we integrated an anchor" and "we drew a picture of one" is exactly what separates a payout rail from a slide.
 
 ## Architecture and money flow
 
@@ -158,8 +162,9 @@ The demo is four panels side by side on one screen: advertiser, player, publishe
 | 1:40 | Task completion | Both players finish the task, each is credited $0.40 | Shares split in one transaction |
 | 2:10 | Instant withdrawal | The trusted player withdraws $0.40 | No threshold, fee ~0.00001 XLM |
 | 2:40 | Publisher withdrawal | The publisher claims the accrued share | Transfer from escrow to publisher |
-| 3:10 | Fraud scenario | The operator flags the second player | Clawback; the honest player's money is untouched |
-| 3:40 | Campaign closing | Unspent budget returns to the advertiser | Refund transaction in the explorer |
+| 3:00 | Cash out | The player opens a withdrawal at the anchor | SEP-24 transaction id, anchor's own KYC page |
+| 3:20 | Fraud scenario | The operator flags the second player | Clawback; the honest player's money is untouched |
+| 3:45 | Campaign closing | Unspent budget returns to the advertiser | Refund transaction in the explorer |
 
 ### The spine of the narrative
 
@@ -192,7 +197,7 @@ Scope was drawn by a single rule: nothing that will not be shown in the demo get
 | --- | --- |
 | A real mobile SDK | Adds nothing visually to the demo, high integration cost |
 | A real fraud model | Manual flagging in the operator panel shows the same thing |
-| Fiat cash-out via a production anchor | Legal and integration time do not fit a hackathon |
+| A licensed production anchor | The SDF test anchor is integrated for real; a licensed one per market is a business problem, not a build one |
 | AI matching / allocation | The platform's job, not the protocol's |
 | Multi-campaign management | One campaign demonstrates the whole mechanism |
 | Mainnet deployment | Testnet is sufficient and safer for a demo |
@@ -302,9 +307,9 @@ Clawback at the protocol level, sponsored reserves that let a user open an accou
 - **Publisher withdrawal.** No minimum. The no-threshold principle is the project's core claim, so no threshold is imposed on the publisher side either.
 - **Ratio table.** Locked for the life of the campaign. A party wanting different ratios opens a new campaign.
 
-### Open questions
+### Settled since
 
-- Which testnet anchor will the demo use, or will fiat exit be simulated?
-- Does a campaign close when its time runs out, or when its budget is exhausted?
+- **The anchor.** The SDF reference anchor on testnet, integrated over SEP-10 and SEP-24 rather than simulated. Withdrawals are bounded at 1–10 SRT by the anchor itself.
+- **Campaign closing.** On budget, not on time. The contract has no clock: `settle` refuses once `remaining` falls below `per_action`, and the advertiser closes explicitly to take the rest back.
 
 Implementation detail, contract interface, and setup steps: [Technical Specification](./02-technical-spec.md)

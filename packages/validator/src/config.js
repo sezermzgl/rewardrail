@@ -58,6 +58,11 @@ export const config = {
   escrowId: deployed.escrow,
   tusdcSacId: deployed.tusdcSac,
 
+  // Anchor. The SDF reference deployment on testnet: real SEP-10 and SEP-24,
+  // test money. SRT is what it anchors and what its withdraw limits apply to.
+  anchorHomeDomain: process.env.ANCHOR_HOME_DOMAIN ?? 'testanchor.stellar.org',
+  anchorAssetCode: process.env.ANCHOR_ASSET_CODE ?? 'SRT',
+
   // Risk tiering. Config, never hardcoded: the tier rule is a business rule
   // that changes far more often than the contract does.
   clawbackWindowSeconds: Number(process.env.CLAWBACK_WINDOW_SECONDS ?? 60),

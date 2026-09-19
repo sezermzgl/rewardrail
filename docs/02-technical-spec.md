@@ -332,3 +332,30 @@ If the Soroban escrow is not running end to end by hour 14, the plan changes. Th
 What is lost: `action_id` replay protection and ratio enforcement move off chain to the validator. What is kept: clawback, sponsored accounts, threshold-free payouts, and auditable money movement — meaning all three of the main claims still stand.
 
 The existence of this fallback is the project's single biggest risk reducer. If the decision point is postponed, there will be no time to build the fallback either.
+
+## Anchor integration
+
+The exit to real money runs through the SDF reference anchor on testnet. It is integrated, not mocked.
+
+| Step | Protocol | What happens |
+| --- | --- | --- |
+| Discovery | stellar.toml | Endpoints and the anchor's signing key are read from `https://<home domain>/.well-known/stellar.toml`, never hardcoded |
+| Authentication | SEP-10 | The anchor issues a challenge transaction; the player's custodial key signs it and exchanges it for a session token |
+| Withdrawal | SEP-24 | A withdrawal is opened on the anchor's server and returns its own interactive URL for KYC and payout details |
+| Status | SEP-24 | `GET /transaction?id=` reports the anchor's view: `incomplete`, then `pending_user_transfer_start`, and onward |
+
+The challenge's source account is checked against the `SIGNING_KEY` in the toml before it is signed. Skipping that check would let any server that answers on the right URL harvest signatures from player accounts.
+
+### Endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /anchor` | The resolved toml plus the withdraw limits for the configured asset |
+| `POST /player/cashout` | Authenticates and opens a withdrawal; returns the anchor's transaction id and interactive URL |
+| `GET /player/cashout/:id` | The anchor's status for that withdrawal |
+
+### What is real and what is not
+
+Real: the authentication, the withdrawal record, the anchor's limits, the status transitions, and the fact that payout details go to the anchor rather than to us.
+
+Not real: the money. The anchor is a test deployment, its asset is SRT rather than a production stablecoin, and it accepts 1–10 SRT per withdrawal. Production means a licensed anchor per market — the same protocol against a different counterparty.

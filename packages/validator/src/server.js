@@ -25,6 +25,12 @@ import {
 } from './chain.js';
 import { signAction } from './proof.js';
 import {
+  anchorToml,
+  withdrawInfo,
+  startWithdrawal,
+  withdrawalStatus,
+} from './anchor.js';
+import {
   registerPlayer,
   getPlayer,
   allPlayers,
@@ -325,6 +331,86 @@ app.post('/fraud/flag', async (req, res) => {
     });
   } catch (err) {
     fail(res, 400, 'clawback failed', err.message);
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Anchor — the exit to real money
+ * ------------------------------------------------------------------ */
+
+app.get('/anchor', async (_req, res) => {
+  try {
+    const toml = await anchorToml();
+    const info = await withdrawInfo(config.anchorAssetCode);
+    res.json({ ...toml, withdraw: info });
+  } catch (err) {
+    fail(res, 502, 'anchor unreachable', err.message);
+  }
+});
+
+/**
+ * Start a real withdrawal at the anchor.
+ *
+ * This is the step that turns a Stellar balance into money a person can
+ * spend. The anchor authenticates the player over SEP-10, opens a SEP-24
+ * withdrawal, and returns its own interactive URL for KYC and payout
+ * details — which the player completes with the anchor, never with us.
+ */
+app.post('/player/cashout', async (req, res) => {
+  const { player, amount } = req.body ?? {};
+  if (!getPlayer(player)) return fail(res, 404, 'unknown player');
+
+  const custodial = playerKeys.get(player);
+  if (!custodial) return fail(res, 400, 'no custodial key for this player');
+
+  try {
+    const info = await withdrawInfo(config.anchorAssetCode);
+    const requested = Number(amount ?? info.minAmount);
+
+    // The anchor's own bounds, surfaced before the player is sent to a page
+    // that would only reject them.
+    if (requested < Number(info.minAmount) || requested > Number(info.maxAmount)) {
+      return fail(
+        res,
+        400,
+        'amount outside the anchor limits',
+        `this anchor accepts ${info.minAmount}–${info.maxAmount} ${info.assetCode}`,
+      );
+    }
+
+    const started = await startWithdrawal({
+      playerKeypair: custodial.keypair,
+      assetCode: info.assetCode,
+      amount: requested,
+    });
+
+    logEvent({
+      kind: 'cashout',
+      actor: player,
+      amount: String(requested),
+      anchorTransactionId: started.id,
+    });
+
+    res.json({
+      anchorTransactionId: started.id,
+      interactiveUrl: started.url,
+      sessionToken: started.token,
+      asset: info.assetCode,
+      amount: requested,
+      limits: { min: info.minAmount, max: info.maxAmount },
+    });
+  } catch (err) {
+    fail(res, 502, 'anchor withdrawal failed', err.message);
+  }
+});
+
+app.get('/player/cashout/:id', async (req, res) => {
+  const token = req.query.token ?? req.get('x-anchor-token');
+  if (!token) return fail(res, 400, 'anchor session token is required');
+  try {
+    res.json(await withdrawalStatus({ id: req.params.id, token }));
+  } catch (err) {
+    fail(res, 502, 'status lookup failed', err.message);
   }
 });
 
