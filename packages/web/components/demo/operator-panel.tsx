@@ -4,20 +4,113 @@
  * The platform's own view. Technical language is fine here: this actor already
  * sees the infrastructure, and the risk signals are the whole point of the
  * panel.
+ *
+ * The flag button is the panel's reason to exist (#16). Clawback is the
+ * project's strongest claim and, until this existed, the only way to trigger
+ * it was curl — which proves the mechanism to nobody watching a demo.
  */
-import { ShieldAlert } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { ShieldAlert, Undo2 } from 'lucide-react';
 
 import { explorerAccount } from '@/lib/chain/config';
+import { flagFraud, type FraudResult } from '@/lib/demo/console-actions';
 import { fetchPlayers, type ValidatorPlayer } from '@/lib/demo/validator';
+import { useAction } from '@/lib/demo/use-action';
 import { useLatestProof } from '@/lib/demo/use-proof';
 import { useLive } from '@/lib/demo/use-live';
 
-import { Note, Panel, Problem, Proof, Stat } from './panel';
+import { Action, Note, Panel, Problem, Proof, Stat } from './panel';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ageDays = (createdAt: number) => ((Date.now() - createdAt) / DAY_MS).toFixed(1);
 
-export function OperatorPanel() {
+/**
+ * What the reversal actually did, in the operator's own words.
+ *
+ * Both outcomes are worth reading. Reversing something proves the clawback
+ * works; reversing nothing proves the window is a real boundary rather than a
+ * setting the platform can ignore, which is the harder half of the claim.
+ */
+function outcomeOf(result: FraudResult): string {
+  if (Number(result.clawedBack) > 0) {
+    return `Reversed ${result.clawedBack} — pulled back from the player and returned to the campaign budget.`;
+  }
+  return (
+    result.note ??
+    'Nothing to reverse: the reward had already been converted, so the payout stands.'
+  );
+}
+
+function PlayerRow({
+  player,
+  campaignId,
+}: {
+  player: ValidatorPlayer;
+  campaignId: number;
+}) {
+  const [outcome, setOutcome] = useState<string | null>(null);
+
+  const flag = useAction(
+    useCallback(async () => {
+      setOutcome(null);
+      setOutcome(outcomeOf(await flagFraud(campaignId, player.publicKey)));
+    }, [campaignId, player.publicKey]),
+  );
+
+  return (
+    <>
+      <tr>
+        <td>
+          <a
+            href={explorerAccount(player.publicKey)}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--ink)', fontWeight: 700 }}
+          >
+            {player.label}
+          </a>
+        </td>
+        <td className="right numeric">{ageDays(player.createdAt)}d</td>
+        <td className="right numeric">{player.tasks}</td>
+        <td
+          className="right"
+          style={{ color: player.flagged ? 'var(--coral)' : 'var(--muted)', fontWeight: 700 }}
+        >
+          {player.flagged ? 'flagged' : player.tier}
+        </td>
+        <td className="right">
+          <Action
+            label={player.flagged ? 'Flagged' : 'Flag'}
+            variant="danger"
+            onClick={flag.run}
+            pending={flag.pending}
+            disabled={player.flagged}
+            title={
+              player.flagged
+                ? 'Already flagged. The clawback chain has run for this account.'
+                : 'Flag as fraudulent: claws back the REWARD still held and refunds the campaign.'
+            }
+            icon={<Undo2 size={13} strokeWidth={2.4} />}
+          />
+        </td>
+      </tr>
+
+      {flag.error || outcome ? (
+        <tr>
+          <td colSpan={5}>
+            {flag.error ? (
+              <Problem>{flag.error}</Problem>
+            ) : (
+              <Note>{outcome}</Note>
+            )}
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
+export function OperatorPanel({ campaignId }: { campaignId: number }) {
   const { data, error, loading } = useLive<ValidatorPlayer[]>(fetchPlayers, { pollMs: 3000 });
   const proof = useLatestProof(['clawback', 'refund', 'flag']);
   const offline = error?.includes('not reachable');
@@ -69,30 +162,12 @@ export function OperatorPanel() {
                 <th className="right">Age</th>
                 <th className="right">Tasks</th>
                 <th className="right">Tier</th>
+                <th className="right">Reversal</th>
               </tr>
             </thead>
             <tbody>
               {data.map((player) => (
-                <tr key={player.publicKey}>
-                  <td>
-                    <a
-                      href={explorerAccount(player.publicKey)}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ color: 'var(--ink)', fontWeight: 700 }}
-                    >
-                      {player.label}
-                    </a>
-                  </td>
-                  <td className="right numeric">{ageDays(player.createdAt)}d</td>
-                  <td className="right numeric">{player.tasks}</td>
-                  <td
-                    className="right"
-                    style={{ color: player.flagged ? 'var(--coral)' : 'var(--muted)', fontWeight: 700 }}
-                  >
-                    {player.flagged ? 'flagged' : player.tier}
-                  </td>
-                </tr>
+                <PlayerRow key={player.publicKey} player={player} campaignId={campaignId} />
               ))}
             </tbody>
           </table>
@@ -102,6 +177,12 @@ export function OperatorPanel() {
       <Note>
         Trusted requires 7+ days and 5+ tasks together. Either alone is easy to
         game: a bot can wait, and a farm can grind tasks.
+      </Note>
+      <Note>
+        Flagging runs the whole chain in one call: the REWARD still held is
+        clawed back and the campaign budget is refunded by exactly that amount.
+        A reward already converted is out of reach, which is what the window is
+        for.
       </Note>
     </Panel>
   );

@@ -55,7 +55,7 @@ export default function DemoPage() {
             <AdvertiserPanel campaignId={CAMPAIGN_ID} />
             <PlayerPanel campaignId={CAMPAIGN_ID} />
             <PublisherPanel campaignId={CAMPAIGN_ID} />
-            <OperatorPanel />
+            <OperatorPanel campaignId={CAMPAIGN_ID} />
           </div>
 
           <TransactionLog />
