@@ -27,6 +27,14 @@
   --radius-xl: 3.5rem;
 
   --seam: 120px;
+
+  /* The demo console (/demo) was built against the previous landing
+     palette. These keep its four remaining token names alive, remapped
+     onto the colours above so both pages read as one product. */
+  --green: #2f6b1e;   /* confirm / positive — the deep form of --rail */
+  --lime: var(--rail); /* bright accent on dark surfaces */
+  --surface: #f1f3f7;  /* subtle tint on a white panel */
+  --coral: #d2542e;    /* danger, legible as text and behind white */
 }
 
 * {
@@ -236,13 +244,19 @@ a {
   max-width: 560px;
 }
 
+/* Neutral by default so the class is safe on any page — /demo uses it
+   too. The blue-backed sections opt into the light-on-blue tone. */
 .eyebrow {
   margin: 0 0 22px;
-  color: var(--muted-on-blue);
+  color: var(--muted);
   font-size: 0.8rem;
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.hero .eyebrow {
+  color: var(--muted-on-blue);
 }
 
 .hero h1 {
