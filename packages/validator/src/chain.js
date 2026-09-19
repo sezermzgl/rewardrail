@@ -344,3 +344,6 @@ export async function createSponsoredPlayer() {
 
   return { player, hash };
 }
+
+/** Re-exported so route handlers can build the odd bespoke ScVal. */
+export { xdr, nativeToScVal };

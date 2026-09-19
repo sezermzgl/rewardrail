@@ -33,6 +33,8 @@ import {
   payment,
   clawback,
   setTrustline,
+  xdr,
+  nativeToScVal,
 } from './chain.js';
 import { signAction } from './proof.js';
 import { quote as swapQuote, swapExactIn } from './soroswap.js';
@@ -455,6 +457,159 @@ app.post('/fraud/flag', async (req, res) => {
     });
   } catch (err) {
     fail(res, 400, 'clawback failed', err.message);
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Console actions — contract writes the browser cannot sign
+ * ------------------------------------------------------------------ *
+ *
+ * Every one of these needs a key: the advertiser's to open or close a
+ * campaign, the publisher's to withdraw. The panels run in a browser and
+ * hold none of them, so the write happens here and the panel gets the hash
+ * back to show. Each logs to the shared event feed so the transaction log
+ * stays a complete record of the demo rather than a partial one.
+ */
+
+/** Publisher pulls its accrued share. No minimum. */
+app.post('/publisher/withdraw', async (req, res) => {
+  const { campaignId, publisher = keys.publisher.publicKey() } = req.body ?? {};
+  if (campaignId === undefined) return fail(res, 400, 'campaignId is required');
+
+  // Only accounts we hold keys for can be withdrawn on behalf of; anyone
+  // else has to call the contract themselves, which is as it should be.
+  const signer = Object.values(keys).find((k) => k.publicKey() === publisher);
+  if (!signer) return fail(res, 400, 'no key held for that publisher');
+
+  try {
+    const result = await invokeContract(
+      'withdraw',
+      [sc.u64(campaignId), sc.address(publisher)],
+      signer,
+    );
+    const amount = stroopsToUnits(result.value ?? 0);
+    logEvent({
+      kind: 'withdraw',
+      actor: publisher,
+      amount,
+      hash: result.hash,
+      url: explorer(result.hash),
+    });
+    res.json({ amount, tx: { hash: result.hash, url: explorer(result.hash) } });
+  } catch (err) {
+    fail(res, 400, 'withdraw failed', err.message);
+  }
+});
+
+/**
+ * Open a campaign.
+ *
+ * Ratios default to the demo split rather than being required, so a panel
+ * can offer one button. Shares are basis points and the contract rejects any
+ * row that does not sum to 10000 — it is not enforced twice here.
+ */
+app.post('/campaign/open', async (req, res) => {
+  const {
+    budget,
+    perAction = 4,
+    publisher = keys.publisher.publicKey(),
+    split = { player_bps: 3000, publisher_bps: 4500, platform_bps: 2500 },
+  } = req.body ?? {};
+
+  const budgetAmount = Number(budget);
+  const perActionAmount = Number(perAction);
+  if (!Number.isFinite(budgetAmount) || budgetAmount <= 0) {
+    return fail(res, 400, 'budget must be positive');
+  }
+  if (!Number.isFinite(perActionAmount) || perActionAmount <= 0) {
+    return fail(res, 400, 'perAction must be positive');
+  }
+  if (budgetAmount < perActionAmount) {
+    return fail(res, 400, 'budget must cover at least one action');
+  }
+
+  const held = Number(await assetBalance(keys.advertiser.publicKey(), PAYOUT));
+  if (held < budgetAmount) {
+    return fail(
+      res,
+      409,
+      'advertiser cannot cover that budget',
+      `holds ${held} ${PAYOUT.getCode()} — fund it with POST /advertiser/fund`,
+    );
+  }
+
+  const toStroops = (n) => BigInt(Math.round(n * 10_000_000));
+  const splits = xdr.ScVal.scvMap([
+    new xdr.ScMapEntry({
+      key: sc.address(publisher),
+      val: nativeToScVal(
+        {
+          platform_bps: split.platform_bps,
+          player_bps: split.player_bps,
+          publisher_bps: split.publisher_bps,
+        },
+        {
+          type: {
+            platform_bps: ['symbol', 'u32'],
+            player_bps: ['symbol', 'u32'],
+            publisher_bps: ['symbol', 'u32'],
+          },
+        },
+      ),
+    }),
+  ]);
+
+  try {
+    const result = await invokeContract(
+      'open_campaign',
+      [
+        sc.address(keys.advertiser.publicKey()),
+        sc.address(keys.platform.publicKey()),
+        sc.address(config.tusdcSacId),
+        sc.bytes(keys.validator.rawPublicKey()),
+        sc.i128(toStroops(perActionAmount)),
+        sc.i128(toStroops(budgetAmount)),
+        splits,
+      ],
+      keys.advertiser,
+    );
+
+    const campaignId = Number(result.value);
+    logEvent({
+      kind: 'campaign_open',
+      actor: keys.advertiser.publicKey(),
+      amount: String(budgetAmount),
+      hash: result.hash,
+      url: explorer(result.hash),
+    });
+    res.json({ campaignId, tx: { hash: result.hash, url: explorer(result.hash) } });
+  } catch (err) {
+    fail(res, 400, 'open_campaign failed', err.message);
+  }
+});
+
+/** Close a campaign and return whatever was never spent. */
+app.post('/campaign/close', async (req, res) => {
+  const { campaignId } = req.body ?? {};
+  if (campaignId === undefined) return fail(res, 400, 'campaignId is required');
+
+  try {
+    const result = await invokeContract(
+      'close_campaign',
+      [sc.u64(campaignId)],
+      keys.advertiser,
+    );
+    const refunded = stroopsToUnits(result.value ?? 0);
+    logEvent({
+      kind: 'campaign_close',
+      actor: keys.advertiser.publicKey(),
+      amount: refunded,
+      hash: result.hash,
+      url: explorer(result.hash),
+    });
+    res.json({ refunded, tx: { hash: result.hash, url: explorer(result.hash) } });
+  } catch (err) {
+    fail(res, 400, 'close_campaign failed', err.message);
   }
 });
 
