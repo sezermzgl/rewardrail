@@ -20,6 +20,17 @@ const WRITE_SECRET = process.env.VALIDATOR_WRITE_SECRET;
 /** Never cached: every panel read is a claim about the chain right now. */
 export const dynamic = 'force-dynamic';
 
+/**
+ * A contract call is not a web request.
+ *
+ * `/action/complete` submits a settle and then pays the reward, and the two
+ * together run past ten seconds often enough to matter — which is the default
+ * a function gets. A visitor who presses "Complete a task" and receives a
+ * timeout has been told the demo is broken when the transaction is, in fact,
+ * on its way to the ledger.
+ */
+export const maxDuration = 60;
+
 async function proxy(request: NextRequest, path: string[]) {
   const target = new URL(`${ORIGIN}/${path.join('/')}`);
   target.search = request.nextUrl.search;
