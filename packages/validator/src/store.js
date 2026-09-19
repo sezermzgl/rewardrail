@@ -48,6 +48,20 @@ export function recordTask(publicKey) {
   return player;
 }
 
+/**
+ * Note that a reward reached the player, without counting a new task.
+ *
+ * The clawback window runs from the moment value lands, so a reconciled
+ * payment opens a window exactly as a fresh one does. Skipping this would
+ * hand out an unfrozen-in-practice reward.
+ */
+export function recordRewardPaid(publicKey) {
+  const player = players.get(publicKey);
+  if (!player) throw new Error(`unknown player ${publicKey}`);
+  player.lastRewardAt = Date.now();
+  return player;
+}
+
 export function flagPlayer(publicKey) {
   const player = players.get(publicKey);
   if (!player) throw new Error(`unknown player ${publicKey}`);

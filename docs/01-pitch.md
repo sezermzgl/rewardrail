@@ -280,6 +280,7 @@ Running a pilot with a single platform comes before turning the protocol into a 
 | The Soroban escrow is not ready in time | The demo is incomplete | Switch to the classic fallback at hour 14 |
 | Testnet slows down during the demo | The presentation stalls | Pre-generated backup hashes |
 | Clawback reads as "user hostile" | Draws objections | It applies only to the reward token and only within the window; never to trusted users |
+| "The window is just your server's promise" | Undermines the fraud claim | The reward is frozen on the ledger for the window's duration; `prove-auth-lock` runs the bypass attack and it fails |
 | No anchor integration | Fiat exit cannot be shown | State up front that it is out of scope |
 | The validator stays centralized | "Not decentralized enough" | A deliberate design choice; see the answer below |
 

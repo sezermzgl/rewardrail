@@ -29,6 +29,7 @@ import {
 import {
   server,
   submit,
+  trustlineAuthorized,
   balanceOf,
   trustlineClawbackEnabled,
   explorer,
@@ -76,7 +77,7 @@ async function createSponsoredPlayer(keys, label) {
 
   const hash = await submit({
     source: keys.sponsor,
-    signers: [keys.sponsor, player],
+    signers: [keys.sponsor, player, keys.rewardIssuer],
     ops: [
       Operation.beginSponsoringFutureReserves({ sponsoredId: player.publicKey() }),
       Operation.createAccount({
@@ -86,6 +87,15 @@ async function createSponsoredPlayer(keys, label) {
       Operation.changeTrust({ asset: reward, source: player.publicKey() }),
       Operation.changeTrust({ asset: tusdc, source: player.publicKey() }),
       Operation.endSponsoringFutureReserves({ source: player.publicKey() }),
+      // The issuer has AUTH_REQUIRED, so a fresh REWARD trustline starts
+      // unauthorized and cannot receive anything. Authorizing it here is what
+      // makes a reward payable to this account and nothing else.
+      Operation.setTrustLineFlags({
+        trustor: player.publicKey(),
+        asset: reward,
+        flags: { authorized: true },
+        source: keys.rewardIssuer.publicKey(),
+      }),
     ],
   });
 
@@ -106,6 +116,10 @@ async function assertPlayerIsWeightless(player, reward, tusdc) {
   assert(
     (await trustlineClawbackEnabled(player.publicKey(), reward)) === true,
     'REWARD trustline is clawback enabled',
+  );
+  assert(
+    (await trustlineAuthorized(player.publicKey(), reward)) === true,
+    'REWARD trustline was authorized by the issuer',
   );
   // Horizon omits the field entirely when the flag is off, so this reads
   // `!== true` rather than `=== false`.

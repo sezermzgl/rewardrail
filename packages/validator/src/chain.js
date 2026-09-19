@@ -77,12 +77,27 @@ export async function assetBalance(publicKey, asset) {
   return line?.balance ?? '0';
 }
 
-export function payment({ destination, asset, amount }) {
-  return Operation.payment({ destination, asset, amount });
+export function payment({ destination, asset, amount, source }) {
+  return Operation.payment({ destination, asset, amount, source });
 }
 
 export function clawback({ from, asset, amount }) {
   return Operation.clawback({ from, asset, amount });
+}
+
+/**
+ * Freeze or unfreeze a trustline.
+ *
+ * Revoking authorization is what makes the clawback window real. A frozen
+ * balance is visible to its holder but cannot move — not to a second account,
+ * not to an exchange, not anywhere. Without this the window is advisory: a
+ * player could simply forward the reward out of reach and convert from there.
+ *
+ * `clawbackEnabled` is deliberately left untouched. Clearing it here would
+ * quietly and permanently disarm clawback on that trustline.
+ */
+export function setTrustline({ trustor, asset, authorized }) {
+  return Operation.setTrustLineFlags({ trustor, asset, flags: { authorized } });
 }
 
 export function pathPaymentStrictSend({ sendAsset, sendAmount, destination, destAsset }) {

@@ -17,6 +17,7 @@ import { dirname, join } from 'node:path';
 import {
   Keypair,
   Operation,
+  AuthRequiredFlag,
   AuthRevocableFlag,
   AuthClawbackEnabledFlag,
 } from '@stellar/stellar-sdk';
@@ -97,25 +98,36 @@ async function ensureAccounts() {
 }
 
 /**
- * Set AUTH_REVOCABLE and AUTH_CLAWBACK_ENABLED on the REWARD issuer.
+ * Set the three flags REWARD depends on.
  *
- * This must happen before any trustline to REWARD exists. A trustline is
- * marked clawback enabled from the issuer's flags at creation time, and
- * setting the flag later does not reach trustlines that already exist.
- * prove-clawback.js demonstrates both outcomes.
+ * `AUTH_CLAWBACK_ENABLED` makes the reward reversible. It must be set before
+ * any trustline exists: a trustline takes its clawback status from the
+ * issuer's flags at creation time, and setting the flag later does not reach
+ * trustlines that already exist. prove-clawback.js demonstrates both outcomes.
+ *
+ * `AUTH_REVOCABLE` lets the issuer withdraw authorization from a trustline,
+ * which is how a reward is frozen while its clawback window is open.
+ *
+ * `AUTH_REQUIRED` makes a new trustline start unauthorized, so REWARD cannot
+ * be received by an account we never authorized. Without it a player could
+ * open a trustline on a second account and move a frozen reward there.
  */
 async function configureRewardIssuer(issuer) {
   section('REWARD ISSUER FLAGS');
 
   const before = await flagsOf(issuer.publicKey());
-  if (before.auth_revocable && before.auth_clawback_enabled) {
+  // Only clawback is order-sensitive. The other two can be turned on at any
+  // time, so a later run that adds one is not the dangerous case.
+  const clawbackWasAlreadySet = Boolean(before.auth_clawback_enabled);
+
+  if (before.auth_required && before.auth_revocable && before.auth_clawback_enabled) {
     log('already configured, skipping');
   } else {
     const hash = await submit({
       source: issuer,
       ops: [
         Operation.setOptions({
-          setFlags: AuthRevocableFlag | AuthClawbackEnabledFlag,
+          setFlags: AuthRequiredFlag | AuthRevocableFlag | AuthClawbackEnabledFlag,
         }),
       ],
     });
@@ -123,15 +135,20 @@ async function configureRewardIssuer(issuer) {
   }
 
   const after = await flagsOf(issuer.publicKey());
+  assert(after.auth_required, 'auth_required is set');
   assert(after.auth_revocable, 'auth_revocable is set');
   assert(after.auth_clawback_enabled, 'auth_clawback_enabled is set');
   assert(!after.auth_immutable, 'auth_immutable is NOT set (flags stay changeable)');
+
+  return { clawbackWasAlreadySet };
 }
 
 /**
- * Fail loudly if anything already trusts REWARD. Reaching this state means
- * the issuer was used before its flags were verified, and every trustline
- * created in that window is permanently non-clawbackable.
+ * Fail loudly if anything trusted REWARD before clawback was enabled.
+ *
+ * Any trustline created in that window is permanently non-clawbackable, and
+ * nothing later can repair it. Checked only on the run that first enables
+ * clawback: once it is on, every trustline after it inherits the flag.
  */
 async function assertNoPreexistingTrustlines(issuer) {
   const { records } = await server
@@ -152,8 +169,12 @@ async function main() {
   console.log('RewardRail — testnet bootstrap');
 
   const keys = await ensureAccounts();
-  await configureRewardIssuer(keys.rewardIssuer);
-  await assertNoPreexistingTrustlines(keys.rewardIssuer);
+  const { clawbackWasAlreadySet } = await configureRewardIssuer(keys.rewardIssuer);
+  if (!clawbackWasAlreadySet) {
+    await assertNoPreexistingTrustlines(keys.rewardIssuer);
+  } else {
+    log('clawback predates every trustline (checked when it was first enabled)');
+  }
 
   section('ENV — copy into .env');
   console.log(`REWARD_ISSUER=${keys.rewardIssuer.publicKey()}`);

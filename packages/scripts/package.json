@@ -10,7 +10,8 @@
     "issue-assets": "node src/issue-assets.js",
     "signup": "node src/signup.js",
     "deploy-escrow": "node src/deploy-escrow.js",
-    "e2e": "node src/e2e.js"
+    "e2e": "node src/e2e.js",
+    "prove-auth-lock": "node src/prove-auth-lock.js"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^17.1.0"

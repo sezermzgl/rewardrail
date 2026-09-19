@@ -22,6 +22,7 @@ import {
   assetBalance,
   payment,
   clawback,
+  setTrustline,
 } from './chain.js';
 import { signAction } from './proof.js';
 import {
@@ -35,6 +36,7 @@ import {
   getPlayer,
   allPlayers,
   recordTask,
+  recordRewardPaid,
   flagPlayer,
   tierOf,
   logEvent,
@@ -55,6 +57,26 @@ const stroopsToUnits = (stroops) => (Number(stroops) / 10_000_000).toFixed(7);
 
 function fail(res, status, message, detail) {
   return res.status(status).json({ error: message, detail: detail ?? undefined });
+}
+
+/**
+ * Deliver a reward and freeze it for the clawback window, in one transaction.
+ *
+ * Three operations, all by the issuer. The thaw is needed because the
+ * trustline is normally frozen — from the previous reward, or from a
+ * clawback. Splitting these across transactions would leave a moment where
+ * the reward is received and freely transferable, which is the exact gap the
+ * window exists to close.
+ */
+function payRewardAndFreeze(player, amount) {
+  return submitClassic({
+    source: keys.rewardIssuer,
+    ops: [
+      setTrustline({ trustor: player, asset: REWARD, authorized: true }),
+      payment({ destination: player, asset: REWARD, amount }),
+      setTrustline({ trustor: player, asset: REWARD, authorized: false }),
+    ],
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -155,10 +177,7 @@ app.post('/action/complete', async (req, res) => {
     ]);
     const amount = stroopsToUnits(BigInt(claimAfter) - BigInt(claimBefore));
 
-    const payHash = await submitClassic({
-      source: keys.rewardIssuer,
-      ops: [payment({ destination: player, asset: REWARD, amount })],
-    });
+    const payHash = await payRewardAndFreeze(player, amount);
     logEvent({ kind: 'reward', actor: player, amount, hash: payHash, url: explorer(payHash) });
 
     recordTask(player);
@@ -172,6 +191,45 @@ app.post('/action/complete', async (req, res) => {
     });
   } catch (err) {
     fail(res, 400, 'settle failed', err.message);
+  }
+});
+
+/**
+ * Deliver a reward that was recorded on chain but never paid.
+ *
+ * `settle` and the REWARD payment are two transactions, so the first can land
+ * while the second fails. When that happens the player has a reserve in the
+ * escrow and nothing in hand. This pays the difference.
+ *
+ * It cannot overpay: the amount is the gap between what the escrow says is
+ * owed and what the player already holds, and it is skipped when that gap is
+ * zero or negative.
+ */
+app.post('/player/reconcile', async (req, res) => {
+  const { player, campaignId } = req.body ?? {};
+  if (!getPlayer(player)) return fail(res, 404, 'unknown player');
+  if (campaignId === undefined) return fail(res, 400, 'campaignId is required');
+
+  const reserve = await readContract('reserve_of', [
+    sc.u64(campaignId),
+    sc.address(player),
+  ]);
+  const owed = Number(stroopsToUnits(reserve));
+  const held = Number(await assetBalance(player, REWARD));
+  const gap = owed - held;
+
+  if (gap <= 0) {
+    return res.json({ paid: '0', owed: owed.toFixed(7), held: held.toFixed(7), note: 'nothing outstanding' });
+  }
+
+  try {
+    const amount = gap.toFixed(7);
+    const hash = await payRewardAndFreeze(player, amount);
+    recordRewardPaid(player);
+    logEvent({ kind: 'reconcile', actor: player, amount, hash, url: explorer(hash) });
+    res.json({ paid: amount, tx: { hash, url: explorer(hash) }, tier: tierOf(player) });
+  } catch (err) {
+    fail(res, 400, 'reconcile failed', err.message);
   }
 });
 
@@ -224,15 +282,21 @@ app.post('/player/convert', async (req, res) => {
     // briefly short, but the claim is still on chain and a retry completes
     // it. Withdrawing first would leave a window where the player holds both
     // the payout and a still-clawbackable reward.
-    const burnHash = await submitAsPlayer({
-      player: custodial.keypair,
-      sponsor: keys.sponsor,
+    // The reward has been frozen since it was paid, so thaw it for exactly as
+    // long as the burn takes. The issuer's operations and the player's sit in
+    // one transaction: if the burn fails, the trustline never unfreezes.
+    const burnHash = await submitClassic({
+      source: keys.rewardIssuer,
+      signers: [keys.rewardIssuer, custodial.keypair],
       ops: [
+        setTrustline({ trustor: player, asset: REWARD, authorized: true }),
         payment({
           destination: keys.rewardIssuer.publicKey(),
           asset: REWARD,
           amount: claimUnits,
+          source: player,
         }),
+        setTrustline({ trustor: player, asset: REWARD, authorized: false }),
       ],
     });
 

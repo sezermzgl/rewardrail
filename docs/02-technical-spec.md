@@ -46,7 +46,7 @@ Issuing our own test asset instead of real USDC is a deliberate choice. The test
 
 | Account | Flags | Notes |
 | --- | --- | --- |
-| REWARD issuer | `AUTH_REVOCABLE`, `AUTH_CLAWBACK_ENABLED` | Both are required for clawback and must be set before the asset is issued |
+| REWARD issuer | `AUTH_REQUIRED`, `AUTH_REVOCABLE`, `AUTH_CLAWBACK_ENABLED` | Clawback needs the last two, and the flag must precede every trustline. `AUTH_REQUIRED` makes a new trustline start unauthorized |
 | TUSDC issuer | None | Plain issuer, no clawback needed |
 | Sponsor / fee payer | None | Sponsors player accounts, signs fee-bumps |
 | Validator | None | Only signs proofs, holds no funds |
@@ -164,6 +164,7 @@ This is a deliberate trade-off. The lock is not enforced on chain, which means t
 | `/player/tier` | GET | Returns the player's tier and remaining window |
 | `/player/convert` | POST | Runs the REWARD → TUSDC conversion if the tier allows |
 | `/fraud/flag` | POST | Flags an account, triggers the clawback and refund chain |
+| `/player/reconcile` | POST | Pays a reward that `settle` recorded but whose payment failed |
 
 ## Clawback and risk tiers
 
@@ -199,11 +200,17 @@ Order matters: the reward is burned first. If the withdrawal then fails, the cla
 
 ### How the lock is enforced
 
-The player's REWARD sits in their own account and is technically transferable. The lock is enforced by `/player/convert` refusing the conversion when the tier does not qualify.
+The ledger enforces it, not the service.
 
-This does not stop a player from sending REWARD to someone else on chain. In a real system the fix would be the issuer using the `AUTH_REQUIRED` flag to authorize trustlines: authorization is withheld for the duration of the window, so the player sees the balance but cannot move it.
+A reward is paid and frozen in the same transaction: the issuer authorizes the trustline, sends the reward, and revokes authorization again, all as three operations of one submission. The player sees the balance and cannot move it. There is no moment in between where the reward is both received and transferable.
 
-`AUTH_REQUIRED` is left out of the hackathon scope because it adds an authorization transaction per new player and contributes nothing visually to the demo. This should be stated openly in the presentation, since an attentive judge may ask.
+Freezing needs `AUTH_REVOCABLE` on the issuer, and `AUTH_REQUIRED` means a new trustline starts unauthorized — so REWARD cannot be received by any account we never authorized. Both are set at bootstrap, verified before anything trusts the asset.
+
+Without this the window would be advisory. A player could forward the reward to a second account and convert from there, and by the time fraud surfaced the original account would be empty. `npm run prove-auth-lock` runs exactly that attack on testnet: the transfer is rejected with `op_src_not_authorized`, the second account receives nothing, and clawback still reaches the frozen reward.
+
+Conversion thaws the trustline, burns the reward and freezes it again, in one transaction. If the burn fails, the trustline never unfreezes.
+
+`/player/convert` still checks the tier before any of this. That check is the off-chain half and can be stalled by the platform; the freeze is the on-chain half and cannot be circumvented by the player. The two guard different parties.
 
 ## Sponsored accounts and the fee-free player flow
 

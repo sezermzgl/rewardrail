@@ -90,3 +90,13 @@ export function assert(condition, message) {
   if (!condition) throw new Error(`ASSERTION FAILED: ${message}`);
   console.log(`  ✓ ${message}`);
 }
+
+/** Whether a trustline is authorized. Undefined when there is no trustline. */
+export async function trustlineAuthorized(publicKey, asset) {
+  const account = await server.loadAccount(publicKey);
+  const line = account.balances.find(
+    (b) =>
+      b.asset_code === asset.getCode() && b.asset_issuer === asset.getIssuer(),
+  );
+  return line?.is_authorized;
+}
