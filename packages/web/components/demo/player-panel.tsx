@@ -3,38 +3,94 @@
 /**
  * The panel that carries the demo: two players, one honest and one not.
  *
- * Language constraint (#15, and the spec's "Consistency in language"): the
- * words wallet, seed, private key, gas, transaction fee and blockchain do not
- * appear here. This must read like a rewards app, because that is the visual
- * proof of the design claim — the player never learns any of this exists.
+ * Language constraint (the spec's "Consistency in language"): the words
+ * wallet, seed, private key, gas, transaction fee and blockchain do not appear
+ * here. This must read like a rewards app, because that is the visual proof of
+ * the design claim — the player never learns any of this exists.
  */
-import { fetchPlayers, type ValidatorPlayer } from '@/lib/demo/validator';
+import { useCallback } from 'react';
+
+import {
+  completeAction,
+  convertReward,
+  fetchPlayers,
+  type ValidatorPlayer,
+} from '@/lib/demo/validator';
+import { useAction } from '@/lib/demo/use-action';
 import { useLive } from '@/lib/demo/use-live';
 
-import { Figure, Panel, Placeholder, Problem } from './panel';
+import { Action, Figure, Panel, Placeholder, Problem } from './panel';
 
-function TierBadge({ player }: { player: ValidatorPlayer }) {
-  const label =
-    player.tier === 'trusted'
-      ? 'Can cash out now'
-      : player.tier === 'suspicious'
-        ? 'On hold'
-        : player.windowRemainingSeconds && player.windowRemainingSeconds > 0
-          ? `Available in ${player.windowRemainingSeconds}s`
-          : 'Can cash out now';
+function statusLine(player: ValidatorPlayer): { text: string; tone: string } {
+  if (player.flagged) return { text: 'On hold', tone: 'var(--warn)' };
+  if (player.canConvert) return { text: 'Can cash out now', tone: 'var(--accent)' };
+  const seconds = player.windowRemainingSeconds;
+  return {
+    text: seconds && seconds > 0 ? `Available in ${seconds}s` : 'On hold',
+    tone: 'var(--muted)',
+  };
+}
 
-  const tone = player.tier === 'suspicious' ? 'var(--warn)' : 'var(--accent)';
+function PlayerCard({
+  player,
+  campaignId,
+}: {
+  player: ValidatorPlayer;
+  campaignId: number;
+}) {
+  const earn = useAction(
+    useCallback(() => completeAction(campaignId, player.publicKey), [campaignId, player.publicKey]),
+  );
+  const cashOut = useAction(
+    useCallback(() => convertReward(campaignId, player.publicKey), [campaignId, player.publicKey]),
+  );
+
+  const status = statusLine(player);
+  const nothingToCashOut = Number(player.rewardBalance) <= 0;
 
   return (
-    <span className="text-[12px] font-medium" style={{ color: tone }}>
-      {label}
-    </span>
+    <div
+      className="flex flex-col gap-2 rounded-md border p-3"
+      style={{ borderColor: 'var(--border)' }}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-medium">{player.label}</span>
+        <span className="text-[12px] font-medium" style={{ color: status.tone }}>
+          {status.text}
+        </span>
+      </div>
+
+      <Figure label="Rewards earned" value={player.rewardBalance} unit="pts" />
+      <Figure label="Cashed out" value={player.tusdcBalance} unit="USD" />
+      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
+        {player.tasks} {player.tasks === 1 ? 'task' : 'tasks'} completed
+      </p>
+
+      <div className="mt-1 flex flex-wrap gap-2">
+        <Action label="Complete a task" onClick={earn.run} pending={earn.pending} />
+        <Action
+          label="Cash out"
+          onClick={cashOut.run}
+          pending={cashOut.pending}
+          disabled={!player.canConvert || nothingToCashOut}
+          title={
+            nothingToCashOut
+              ? 'Nothing to cash out yet'
+              : player.canConvert
+                ? undefined
+                : player.reason
+          }
+        />
+      </div>
+
+      {earn.error ? <Problem>{earn.error}</Problem> : null}
+      {cashOut.error ? <Problem>{cashOut.error}</Problem> : null}
+    </div>
   );
 }
 
-export function PlayerPanel() {
+export function PlayerPanel({ campaignId }: { campaignId: number }) {
   const { data, error, loading } = useLive<ValidatorPlayer[]>(fetchPlayers, { pollMs: 3000 });
-
   const offline = error?.includes('not reachable');
 
   return (
@@ -50,21 +106,7 @@ export function PlayerPanel() {
       ) : null}
 
       {data?.map((player) => (
-        <div
-          key={player.publicKey}
-          className="flex flex-col gap-1 rounded-md border p-3"
-          style={{ borderColor: 'var(--border)' }}
-        >
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-medium">{player.label}</span>
-            <TierBadge player={player} />
-          </div>
-          <Figure label="Rewards earned" value={player.rewardBalance} unit="pts" />
-          <Figure label="Cashed out" value={player.tusdcBalance} unit="USD" />
-          <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
-            {player.tasks} {player.tasks === 1 ? 'task' : 'tasks'} completed
-          </p>
-        </div>
+        <PlayerCard key={player.publicKey} player={player} campaignId={campaignId} />
       ))}
 
       {data?.length === 0 ? <Placeholder>No accounts yet.</Placeholder> : null}

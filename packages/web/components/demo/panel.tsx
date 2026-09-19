@@ -69,3 +69,32 @@ export function Problem({ children }: { children: React.ReactNode }) {
     </p>
   );
 }
+
+/** A panel action. Disabled while it runs, so one click spends once. */
+export function Action({
+  label,
+  onClick,
+  pending,
+  disabled,
+  title,
+}: {
+  label: string;
+  onClick: () => void;
+  pending?: boolean;
+  disabled?: boolean;
+  title?: string;
+}) {
+  const off = disabled || pending;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={off}
+      title={title}
+      className="rounded-md px-3 py-1.5 text-[13px] font-medium transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
+      style={{ background: 'var(--accent)', color: 'var(--bg)' }}
+    >
+      {pending ? 'Working…' : label}
+    </button>
+  );
+}
