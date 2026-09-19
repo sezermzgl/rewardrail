@@ -152,6 +152,22 @@ The validator must call `claim_of` afterwards to know what was credited. #17
 wants amounts in the shared log, so that is an extra round trip per action.
 Returning the three amounts would remove it.
 
+### F4 — a campaign's budget and its escrow balance are not readable
+
+`open_campaign` receives `budget`, transfers it, and stores only `remaining`.
+Nothing keeps the number it started from, so "spent so far" cannot be computed
+from chain state. And because one contract carries every campaign, the
+contract's token balance is a total, not any single campaign's escrow.
+
+This bites #14 directly: of the four figures the advertiser panel is specified
+to show — escrow balance, ratio table, spent, remaining — two are unavailable.
+Measured on testnet against campaign 0: `remaining` was 96.0000 TUSDC while the
+contract held 403.8000 across all campaigns.
+
+Adding `budget: i128` to `Campaign` closes the spend half for one field. The
+per-campaign balance half needs either a per-campaign accumulator or a panel
+that shows the total and says so.
+
 ## 5. The JS boundary
 
 `e2e.js` drives the contract through the `stellar` CLI. A backend cannot shell
@@ -174,6 +190,7 @@ contract error arrives at the API layer as one opaque string. See F1.
 | Issue | Change |
 | --- | --- |
 | #7 | F2: derive the refund amount from the claim being zeroed |
+| #5 | F4: keep `budget` on `Campaign` so the advertiser panel can show spend |
 | #6 | F1 and F3: return the three amounts; decide how a bad signature should surface |
 | #9 | Config gains `ESCROW_CONTRACT_ID`, `TUSDC_SAC_ID`, the campaign id, and the `platform` key |
 | #10 | Build the digest with ScVal-XDR addresses, not raw keys; expect traps, not error 5 |
