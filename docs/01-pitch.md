@@ -22,9 +22,9 @@ The demo shows all three live on Stellar testnet: the advertiser locks USDC in e
 
 Rewarded advertising is a working business model, but the payment rail underneath it does not match the model. The model needs micro-amount, instant, cross-border payouts; the existing rail is batched, delayed, and separate per country.
 
-### Case study: Mega Fortuna
+### What the economics look like
 
-[Mega Fortuna](https://megafortuna.co/company/) runs this model across 6+ markets. It matches advertisers and publishers through a two-sided marketplace called [GameRewards](https://megafortuna.co/solutions/), and also operates [its own consumer apps](https://megafortuna.co/platform/): Earnimo (JP/KR), PunkteWelt (DE), JeuValeur (FR), and Richie Games (US/UK, not yet shipped).
+A mid-size operator in this category runs the model across half a dozen markets at once. It matches advertisers with publishers through a two-sided marketplace, and usually also runs its own consumer apps in each region, under a local brand and a local payment provider.
 
 A typical install splits like this:
 
@@ -42,7 +42,7 @@ A typical install splits like this:
 3. **Unverifiable spend.** The advertiser has to trust the claim that "1,000 installs happened." All verification power sits with the platform; there is no independent audit path.
 4. **Irreversible fraud.** Fraud is usually understood after the payout. Once money has left the account it does not come back, and either the platform or the advertiser eats the loss.
 
-Mega Fortuna markets itself on [being fraud-resilient](https://megafortuna.co/ai/), but today that only covers pre-payout detection. Post-payout reversal is not something the existing rail offers.
+Operators in this category compete on being fraud-resilient, and some of them genuinely are — but only before the payout. Post-payout reversal is not something the existing rail offers to anyone, however good their detection is.
 
 ## Solution: RewardRail
 
@@ -273,7 +273,7 @@ The left column represents common industry practice; read it as an order of magn
 
 ### After the hackathon
 
-Running a pilot with a single platform comes before turning the protocol into a general product. An operator like Mega Fortuna — multi-market and mid-transition — is the narrowest and most realistic first counterpart.
+Running a pilot with a single platform comes before turning the protocol into a general product. A multi-market operator already mid-transition — enough volume for the thresholds to hurt, few enough markets to integrate one rail at a time — is the narrowest and most realistic first counterpart.
 
 ## Risks and judge questions
 

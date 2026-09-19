@@ -33,7 +33,7 @@ In rewarded advertising an advertiser pays for an install, a player earns points
 - Advertisers cannot independently verify the invoice they receive
 - Fraud found after a payout is written off, because the money is gone
 
-[Mega Fortuna](https://megafortuna.co/) runs this model across six markets, which is where the numbers in [docs/01-pitch.md](docs/01-pitch.md) come from.
+The numbers in [docs/01-pitch.md](docs/01-pitch.md) are what a mid-size operator running this model across several markets pays out on a typical install.
 
 ## What it does
 
