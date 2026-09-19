@@ -31,10 +31,15 @@ deployed by hand or the URL a judge is holding stays on the previous build.
 **Warm the validator before presenting.** It is on Render's free instance type,
 which stops the service after fifteen minutes of inactivity; the next request
 pays about a minute for the cold start and the in-memory player and tier state
-starts empty. Opening the console once, a few minutes ahead, is enough. A
-restart in the middle of a run is the case that actually hurts: the clawback
-window would read as closed for a reward the ledger still has frozen, which is
-F6 in `03-contract-interface.md`.
+starts empty. Opening the console once, a few minutes ahead, is enough.
+
+A restart mid-run used to be the case that actually hurt — the clawback window
+would read as closed for a reward the ledger still had frozen, and the panel
+offered a cash-out the chain then refused. That is F6 in
+`03-contract-interface.md` and it is fixed: the REWARD trustline's
+authorization flag is read back from Horizon, so the window's real enforcement
+answers the question rather than a clock that a restart erased. The cold start
+itself is still a minute.
 
 ## The run
 
@@ -156,12 +161,17 @@ one.
 seconds of chain work in total, and the slowest single call was the pair of
 settles at 20s. There is room in four minutes.
 
-**The anchor has no KYC page.** `01-pitch.md` says the interactive URL that
+**The anchor has no KYC page.** `01-pitch.md` said the interactive URL that
 comes back is the anchor's own KYC and payout page. Against the Turkish SEP-6
 ramp that is not true: SEP-6 is programmatic and returns a transaction id with
 no hosted page, which is what this run got. The claim holds for the SEP-24
-reference anchor and not for this one, so the line needs narrowing before it
-is said to a judge.
+reference anchor and not for this one.
+
+Narrowed since, in the pitch and the spec — and in the code, which had the
+same assumption baked in. `/play` opened the returned URL unconditionally, so
+against this anchor it opened a blank tab. Both shapes are handled now: a page
+when there is one, the withdrawal reference and the delivery transaction when
+there is not.
 
 **The money reconciles.** 12 USDC in, two actions releasing 4 each, 1.2 clawed
 back into the budget, 5.2 refunded at close — 12 = 8 - 1.2 + 5.2. The escrow

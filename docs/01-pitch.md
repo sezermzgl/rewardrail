@@ -201,7 +201,7 @@ Scope was drawn by a single rule: nothing that will not be shown in the demo get
 | --- | --- |
 | A real mobile SDK | Adds nothing visually to the demo, high integration cost |
 | A real fraud model | Manual flagging in the operator panel shows the same thing |
-| A licensed production anchor | The SDF test anchor is integrated for real; a licensed one per market is a business problem, not a build one |
+| A licensed production anchor | A testnet anchor is integrated for real, over the same standards; a licensed one per market is a business problem, not a build one |
 | AI matching / allocation | The platform's job, not the protocol's |
 | Multi-campaign management | One campaign demonstrates the whole mechanism |
 | Mainnet deployment | Testnet is sufficient and safer for a demo |
@@ -314,7 +314,7 @@ Clawback at the protocol level, sponsored reserves that let a user open an accou
 
 ### Settled since
 
-- **The anchor.** The SDF reference anchor on testnet, integrated over SEP-10 and SEP-24 rather than simulated. Withdrawals are bounded at 1–10 SRT by the anchor itself.
+- **The anchor.** Two were integrated in turn. The SDF reference anchor came first — real SEP-10 and SEP-24, but its asset is SRT, which has no fiat leg. The demo settles against the Turkish ramp instead: SEP-6, USDC to lira, a rate the anchor quotes and a payout it confirms. Both paths are live and the code picks by what the anchor's `stellar.toml` publishes.
 - **Campaign closing.** On budget, not on time. The contract has no clock: `settle` refuses once `remaining` falls below `per_action`, and the advertiser closes explicitly to take the rest back.
 
 Implementation detail, contract interface, and setup steps: [Technical Specification](./02-technical-spec.md)

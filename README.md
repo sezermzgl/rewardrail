@@ -22,7 +22,7 @@ A full run through the public URL, as a visitor would: sign in by email, finish 
 
 The demo runs on campaign 7 — 340 USDC at 4.00 per action, 85 plays — funded by swapping XLM through Soroswap rather than from a faucet.
 
-**One operational note.** The validator is on a free instance that stops after fifteen minutes idle, so the first request after a quiet spell takes about a minute and comes back with empty in-memory state. A fresh visitor is unaffected: they build their own state from the sign-in. Mid-demo it matters, because a restart makes every clawback window read as closed. Open the console a few minutes before presenting.
+**One operational note.** The validator is on a free instance that stops after fifteen minutes idle, so the first request after a quiet spell takes about a minute and comes back with empty in-memory state. A fresh visitor is unaffected: they build their own state from the sign-in. A restart no longer misreports an open clawback window — the REWARD trustline's authorization flag is read back from the ledger, which is the window's real enforcement and does not live in memory — but the first request still pays the cold start, so open the console a few minutes before presenting.
 
 ## The problem
 
@@ -69,7 +69,7 @@ Reference transactions, all on testnet:
 | Route | Who it is for |
 | --- | --- |
 | `/` | Landing page — the product case |
-| `/play` | The player's rewards app. Five playable games, an offerwall, and a payout. Never says wallet, seed or gas |
+| `/play` | The player's rewards app. Sign in by email, five playable games, an offerwall, and a payout to a bank account. Never says wallet, seed or gas |
 | `/demo` | Four-panel console: advertiser, player, publisher, operator, with a shared transaction log |
 
 ## Architecture
@@ -181,7 +181,7 @@ The advertiser needs the payout asset first. Three ways, in order of how real th
 cd packages/validator && \
   ANCHOR_HOME_DOMAIN=tr-mock-anchor.fly.dev ANCHOR_ASSET_CODE=USDC \
   PAYOUT_ASSET_CODE=USDC PAYOUT_ASSET_ISSUER=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5 \
-  DEMO_CAMPAIGN_ID=3 npm start
+  DEMO_CAMPAIGN_ID=7 npm start
 
 # terminal 2
 cd packages/web && npm run dev
@@ -195,7 +195,7 @@ Open <http://localhost:3000/play> to earn, <http://localhost:3000/demo> to watch
 
 ```bash
 cd packages/contracts && cargo test   # 15 tests
-cd packages/web && npm test           # 19 tests
+cd packages/web && npm test           # 54 tests
 ```
 
 ## Key design decisions
@@ -236,6 +236,7 @@ From [skills.stellar.org](https://skills.stellar.org):
 
 | Document | Contents |
 | --- | --- |
+| [docs/00-build-log.md](docs/00-build-log.md) | What was built, in the order it was built, and why each step came when it did |
 | [docs/01-pitch.md](docs/01-pitch.md) | Problem, solution, demo script, scope, risks, judge questions |
 | [docs/02-technical-spec.md](docs/02-technical-spec.md) | Components, contract interface, proof format, setup, tests |
 | [docs/03-contract-interface.md](docs/03-contract-interface.md) | The contract's surface as the web layer consumes it |

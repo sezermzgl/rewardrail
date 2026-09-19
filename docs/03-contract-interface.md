@@ -58,6 +58,12 @@ claim_of(campaign_id, who)                                                      
 is_settled(action_id)                                                                     -> bool
 ```
 
+**Superseded by the redeploy at the foot of this file.** `refund_clawback`
+lost its `amount`, and two functions were added — `reserve_of` and
+`redeem_player` — because a player's entitlement stopped being a claim. The
+current surface is the table under "Breaking change — 2026-09-19"; this list
+is kept as what the validator was written against.
+
 Auth: `open_campaign` needs the advertiser, `withdraw` needs `who`,
 `refund_clawback` needs the campaign's `platform`, `close_campaign` needs the
 advertiser. **`settle` requires no auth at all** — the ed25519 proof is the
@@ -183,7 +189,7 @@ keeps the POSTs in #14–#16 free of preflight requests, and leaves no CORS
 configuration to get wrong. The validator itself is unchanged; if it is ever
 served to a browser from another origin, it will need the headers.
 
-### F6 — a validator restart makes a frozen reward look spendable
+### F6 — a validator restart makes a frozen reward look spendable — FIXED
 
 The validator keeps players, task counts and `lastRewardAt` in memory, which it
 documents as acceptable for a demo. One consequence is not: after a restart,
@@ -198,9 +204,19 @@ Observed while verifying #15: after restarting the validator, a player holding
 1.2000000 REWARD from a minute earlier showed "Can cash out now".
 
 It matters because a mid-presentation restart is exactly when this happens.
-Reading `lastRewardAt` back from the trustline's authorization state on
-startup, rather than assuming a cold store means a closed window, would keep
-the two in step.
+
+Fixed by doing what the last paragraph suggested, at read time rather than at
+startup. `playerAssets` in `packages/validator/src/chain.js` returns the
+REWARD trustline's authorization flag alongside the balance, and
+`reconcileTier` in the server refuses `canConvert` while the ledger says the
+reward is frozen, whatever the in-memory clock thinks. `/players`,
+`/player/tier` and `/player/convert` all go through it, so the panel and the
+chain give the same answer.
+
+The tier still reports no countdown in that state, and that is deliberate: the
+clock it would come from is the one that was lost. The ledger says frozen, and
+that is all that is known. The player panel shows "Held by the ledger" rather
+than inventing a number.
 
 ## 5. The JS boundary
 

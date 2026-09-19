@@ -37,10 +37,24 @@ flowchart LR
 | Asset | Type | Role |
 | --- | --- | --- |
 | `REWARD` | Classic asset we issue | The player's reward balance, clawback enabled |
-| `TUSDC` | Test stablecoin we issue | The value held in escrow, standing in for USDC in the demo |
+| `USDC` | Circle's testnet issuance | The value held in escrow and the asset the anchor ramps to lira |
+| `TUSDC` | Test stablecoin we issue | Superseded. Kept deployed as the fallback path with no anchor in the loop |
 | `XLM` | Native | Only fees and reserves; the user never sees it |
 
-Issuing our own test asset instead of real USDC is a deliberate choice. The testnet USDC issuer address and faucet availability are an external dependency, and it is not worth the risk of it failing mid-presentation. Architecturally there is no difference, since both are standard classic assets.
+**Corrected since first written.** The original plan was to issue our own test
+stablecoin rather than depend on the testnet USDC issuer and its faucet, on
+the grounds that architecturally there is no difference between two standard
+classic assets.
+
+That reasoning was right about the mechanism and wrong about the exit. No
+anchor recognises an asset we minted, so TUSDC has no way out to money — which
+makes the last step of the demo a mock however real the rest of it is. The
+escrow settles in Circle's testnet USDC, which is what the Turkish anchor
+converts to lira. TUSDC still proves the mechanism and stays deployed for
+running the flow without an anchor.
+
+Code still says `TUSDC` in places; `PAYOUT` is the name that follows the
+deployment, and `TUSDC` is an alias kept while callers migrate.
 
 ### Accounts
 
@@ -121,7 +135,7 @@ In production the atomic version is the right design, and moving to it does not 
 
 ### Other design notes
 
-- **The escrow holds TUSDC, the player holds REWARD.** The TUSDC backing a player's reward stays in escrow as reserve and is paid out when the player converts.
+- **The escrow holds the payout asset, the player holds REWARD.** The USDC backing a player's reward stays in escrow as reserve and is paid out when the player converts.
 - **The publisher share is pull, not push.** `settle` only increments a balance, it does not transfer. The transfer happens on a `withdraw` call.
 - **`action_id` is the heart of replay protection.** Even if the validator submits the same proof twice, the second one is rejected.
 - **Basis points, not decimals.** The three shares must sum to exactly 10000; `open_campaign` verifies this.
@@ -342,30 +356,55 @@ The existence of this fallback is the project's single biggest risk reducer. If 
 
 ## Anchor integration
 
-The exit to real money runs through the SDF reference anchor on testnet. It is integrated, not mocked.
+The exit to real money is integrated, not mocked. Two anchors were wired up in
+turn, and the difference between them is worth stating precisely because it
+changes the shape of the last step.
 
-| Step | Protocol | What happens |
-| --- | --- | --- |
-| Discovery | stellar.toml | Endpoints and the anchor's signing key are read from `https://<home domain>/.well-known/stellar.toml`, never hardcoded |
-| Authentication | SEP-10 | The anchor issues a challenge transaction; the player's custodial key signs it and exchanges it for a session token |
-| Withdrawal | SEP-24 | A withdrawal is opened on the anchor's server and returns its own interactive URL for KYC and payout details |
-| Status | SEP-24 | `GET /transaction?id=` reports the anchor's view: `incomplete`, then `pending_user_transfer_start`, and onward |
+| Anchor | Standard | Asset | Why |
+| --- | --- | --- | --- |
+| SDF reference (`testanchor.stellar.org`) | SEP-24 | SRT | Built first. Real protocol, but SRT is not money and there is no fiat leg |
+| TR Mock Anchor (`tr-mock-anchor.fly.dev`) | SEP-6 | USDC → TRY | What the demo settles against. Converts to lira, which is the claim the pitch makes |
 
-The challenge's source account is checked against the `SIGNING_KEY` in the toml before it is signed. Skipping that check would let any server that answers on the right URL harvest signatures from player accounts.
+Both are supported and the code picks by what the anchor's `stellar.toml`
+offers; `ANCHOR_PROTOCOL` forces one when an anchor publishes both.
+
+| Step | What happens |
+| --- | --- |
+| Discovery | Endpoints and the anchor's signing key are read from `https://<home domain>/.well-known/stellar.toml`, never hardcoded |
+| Authentication (SEP-10) | The anchor issues a challenge transaction; the player's custodial key signs it and exchanges it for a session token |
+| Withdrawal (SEP-24) | Opened on the anchor's server, which returns **its own interactive URL** for KYC and payout details |
+| Withdrawal (SEP-6) | Programmatic: the anchor returns a transaction id, an account and a memo, and **no page at all**. The wallet sends the asset itself — fee-bumped, because the player holds no XLM |
+| Status | `GET /transaction?id=` reports the anchor's own view of the withdrawal |
+
+The challenge's source account is checked against the `SIGNING_KEY` in the toml
+before it is signed. Skipping that check would let any server that answers on
+the right URL harvest signatures from player accounts.
+
+**The SEP-6 path has no hosted page, and callers must not assume one.** The
+rehearsal in `04-demo-rehearsal.md` caught the interface assuming otherwise:
+`interactiveUrl` comes back `null` against the Turkish ramp, and opening it
+produced a blank tab. Under SEP-6 the evidence the player gets is the
+withdrawal reference plus the on-chain payment that delivered the asset.
 
 ### Endpoints
 
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /anchor` | The resolved toml plus the withdraw limits for the configured asset |
-| `POST /player/cashout` | Authenticates and opens a withdrawal; returns the anchor's transaction id and interactive URL |
+| `POST /player/cashout` | Authenticates and opens a withdrawal. Returns the anchor's transaction id, the interactive URL under SEP-24, and the delivery transaction under SEP-6 |
 | `GET /player/cashout/:id` | The anchor's status for that withdrawal |
 
 ### What is real and what is not
 
-Real: the authentication, the withdrawal record, the anchor's limits, the status transitions, and the fact that payout details go to the anchor rather than to us.
+Real: the authentication, the withdrawal record, the anchor's limits, the
+status transitions, the on-chain delivery of the asset, and the fact that
+payout details go to the anchor rather than to us. One recorded run locked a
+rate of 48.54 TRY/USDC and the anchor reported 58.24 TRY paid, status
+completed.
 
-Not real: the money. The anchor is a test deployment, its asset is SRT rather than a production stablecoin, and it accepts 1–10 SRT per withdrawal. Production means a licensed anchor per market — the same protocol against a different counterparty.
+Not real: the bank. No IBAN receives money and no KYC is performed. Production
+means a licensed anchor per market — the same code against a different home
+domain.
 
 ## Funding a campaign through Soroswap
 

@@ -1,15 +1,23 @@
 /**
  * Anchor integration — the last mile from a Stellar balance to real money.
  *
- * This talks to the SDF reference anchor on testnet, not a mock. SEP-10
- * authenticates the player's account, SEP-24 opens a withdrawal the anchor
- * itself tracks. The interactive URL that comes back is the anchor's own
- * KYC and payout page.
+ * This talks to a real anchor, not a mock. SEP-10 authenticates the player's
+ * account and the anchor tracks the withdrawal itself. Which transfer
+ * standard runs is the anchor's decision, read from its `stellar.toml`:
+ *
+ *   SEP-24  hands the player to the anchor's own hosted page for KYC and
+ *           payout details, and collects the asset there.
+ *   SEP-6   is programmatic and has no page at all. It answers with an
+ *           account and a memo, and the wallet sends the asset itself.
+ *
+ * The deployed demo runs against the Turkish ramp, which is SEP-6 and
+ * converts USDC to lira. The SDF reference anchor is SEP-24 and settles in
+ * SRT, which proves the protocol but has no fiat leg.
  *
  * What is genuinely real here: the authentication, the withdrawal record,
- * and the status transitions. What is not: the anchor is a test deployment
- * that pays no actual fiat, and its asset is SRT rather than a production
- * stablecoin. Say both out loud rather than letting anyone assume otherwise.
+ * the anchor's limits, the status transitions and the on-chain delivery.
+ * What is not: the bank. No IBAN receives money and no KYC is performed.
+ * Say both out loud rather than letting anyone assume otherwise.
  */
 import { TransactionBuilder, Networks } from '@stellar/stellar-sdk';
 
@@ -173,11 +181,14 @@ async function startWithdrawalSep6({ playerKeypair, assetCode, amount, token, to
 }
 
 /**
- * Open a withdrawal. Returns the anchor's transaction id and the interactive
- * URL where the player completes KYC and gives their payout details.
+ * Open a withdrawal.
  *
- * The URL is the anchor's, not ours. We never see the player's bank details,
- * which is the whole point of SEP-24 being interactive.
+ * Always returns the anchor's transaction id. Under SEP-24 it also returns
+ * the interactive URL where the player completes KYC and gives their payout
+ * details — the anchor's page, not ours, which is the whole point of it
+ * being interactive. **Under SEP-6 there is no URL**, and a caller that
+ * assumes one opens a blank tab; what it gets instead is the account and
+ * memo to deliver the asset to.
  */
 export async function startWithdrawal({ playerKeypair, assetCode, amount }) {
   const toml = await anchorToml();
