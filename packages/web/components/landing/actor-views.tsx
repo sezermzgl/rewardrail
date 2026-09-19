@@ -94,6 +94,16 @@ export function ActorViews() {
                   </div>
                 ))}
               </div>
+              {active.id === "operator" ? (
+                <div
+                  className="reversal-flow"
+                  aria-label="Fraudulent reward returning to campaign escrow"
+                >
+                  <span>Flagged reward</span>
+                  <i aria-hidden="true"><b /></i>
+                  <span>Campaign escrow</span>
+                </div>
+              ) : null}
               <div className="actor-panel__transaction">
                 <span>Latest settlement</span>
                 <code>{active.transaction}</code>

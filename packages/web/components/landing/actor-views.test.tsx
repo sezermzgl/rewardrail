@@ -18,3 +18,12 @@ test("supports keyboard tab navigation", async () => {
   await user.keyboard("{ArrowRight}");
   expect(screen.getByRole("tab", { name: "Player" })).toHaveFocus();
 });
+
+test("shows a controlled escrow return for the operator fraud state", async () => {
+  const user = userEvent.setup();
+  render(<ActorViews />);
+  await user.click(screen.getByRole("tab", { name: "Operator" }));
+  expect(
+    screen.getByLabelText(/fraudulent reward returning to campaign escrow/i),
+  ).toBeInTheDocument();
+});

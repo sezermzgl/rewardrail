@@ -307,6 +307,10 @@ summary {
 .actor-panel__stats strong { overflow-wrap: anywhere; font-size: 1.15rem; letter-spacing: -0.04em; }
 .actor-panel__stats [data-tone="positive"] strong { color: var(--green); }
 .actor-panel__stats [data-tone="warning"] strong { color: var(--coral); }
+.reversal-flow { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; margin: 0 18px 12px; padding: 11px 13px; border: 1px solid #f0c9c3; border-radius: 12px; background: #fff5f2; color: #9e4f43; font-size: 0.64rem; font-weight: 750; }
+.reversal-flow > i { position: relative; height: 2px; overflow: hidden; background: #e7b2aa; container-type: inline-size; }
+.reversal-flow > i b { position: absolute; top: -3px; right: -8px; width: 8px; height: 8px; border-radius: 50%; background: var(--coral); animation: reversal-pulse 1.8s ease-in-out infinite; }
+@keyframes reversal-pulse { from { transform: translateX(0); } to { transform: translateX(calc(-100cqw + 8px)); } }
 .actor-panel__transaction { display: flex; min-width: 0; align-items: center; gap: 12px; margin: 0 18px 18px; padding: 14px; border-radius: 12px; background: var(--ink); color: white; font-size: 0.7rem; }
 .actor-panel__transaction span { color: #a7b1ab; }
 .actor-panel__transaction code { margin-left: auto; overflow-wrap: anywhere; color: var(--lime); }
