@@ -1,92 +1,92 @@
 {
-  "ranAt": "2026-09-19T22:22:38.003Z",
-  "totalSeconds": 138.2,
-  "campaignId": 6,
+  "ranAt": "2026-09-19T23:06:33.104Z",
+  "totalSeconds": 135.4,
+  "campaignId": 8,
   "escrow": "CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI",
   "payoutSac": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
   "validator": "GALJPQWLJVU64BAH46LTRHZML23JF4YDGYBHHCRWOK75IEKSF5QAGR6S",
   "players": {
-    "honest": "GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL",
-    "fraudster": "GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB"
+    "honest": "GBU2TDE22CS4LDEAKYTLC6HV2DSDWENCNIY467YEF2DKC2KOLPFXP6SD",
+    "fraudster": "GDKKNY2KVWSORYPCFWLWLM7OM2KC423FW7PWPKK4TSXSDED7JYLSMKEE"
   },
   "steps": [
     {
       "minute": "0:40",
       "name": "Campaign opening",
       "narration": "The budget is locked in a contract, not held by us.",
-      "seconds": 8.6,
+      "seconds": 3.9,
       "txs": [
         {
           "label": "open_campaign",
-          "hash": "8b8b9719f7cb176196aa3ec95193a9739be7c3c8b9def9b37b5f3cebf9de25e9",
-          "url": "https://stellar.expert/explorer/testnet/tx/8b8b9719f7cb176196aa3ec95193a9739be7c3c8b9def9b37b5f3cebf9de25e9",
+          "hash": "02aa98ead2b23e11cc8d1cef60a9d571688ffa1e5308fd10ad98795a378812b6",
+          "url": "https://stellar.expert/explorer/testnet/tx/02aa98ead2b23e11cc8d1cef60a9d571688ffa1e5308fd10ad98795a378812b6",
           "verified": true,
-          "ledger": 4766568
+          "ledger": 4767095
         }
       ],
       "notes": [
-        "campaign 6, 12 USDC at 4 per action"
+        "campaign 8, 12 USDC at 4 per action"
       ]
     },
     {
       "minute": "1:10",
       "name": "Player signup",
       "narration": "An email and nothing else. No wallet, no seed, no XLM.",
-      "seconds": 9.6,
+      "seconds": 10.3,
       "txs": [
         {
           "label": "sponsored account (honest)",
-          "hash": "289fdada451b032ac6f74a73caac4458c38eb6627d157d57de8f16e25b987c2f",
-          "url": "https://stellar.expert/explorer/testnet/tx/289fdada451b032ac6f74a73caac4458c38eb6627d157d57de8f16e25b987c2f",
+          "hash": "339ce47d3c9364a84a8e255a52cadd937b14ad5d17008f77d68f7f552147da58",
+          "url": "https://stellar.expert/explorer/testnet/tx/339ce47d3c9364a84a8e255a52cadd937b14ad5d17008f77d68f7f552147da58",
           "verified": true,
-          "ledger": 4766569
+          "ledger": 4767096
         },
         {
           "label": "sponsored account (fraudster)",
-          "hash": "97e895370070e864fa79be31026e5b3099ae396207a2f307098cebc34529b3bd",
-          "url": "https://stellar.expert/explorer/testnet/tx/97e895370070e864fa79be31026e5b3099ae396207a2f307098cebc34529b3bd",
+          "hash": "b0a0825b8e9313488096966ba38d6a29dd3951026ceb8f3ad4aebaec7e78b257",
+          "url": "https://stellar.expert/explorer/testnet/tx/b0a0825b8e9313488096966ba38d6a29dd3951026ceb8f3ad4aebaec7e78b257",
           "verified": true,
-          "ledger": 4766570
+          "ledger": 4767097
         }
       ],
       "notes": [
-        "honest GCGTJXCPWZR7JIYTPYMLQT2WKLDDTQ3FVICPKNPJEDDJKU4CKLN4ZPUL",
-        "fraudster GDVZZS2LU5SMWPIQJQLEQULAYM5TY4GQCSKU5QBMIXREVL4NWRTPN4XB"
+        "honest GBU2TDE22CS4LDEAKYTLC6HV2DSDWENCNIY467YEF2DKC2KOLPFXP6SD",
+        "fraudster GDKKNY2KVWSORYPCFWLWLM7OM2KC423FW7PWPKK4TSXSDED7JYLSMKEE"
       ]
     },
     {
       "minute": "1:40",
       "name": "Task completion",
       "narration": "One verified action, three shares, one transaction.",
-      "seconds": 19.6,
+      "seconds": 19.9,
       "txs": [
         {
           "label": "settle (honest)",
-          "hash": "401b57d6a36e1740d50c4adc9c12e53e7d8f2fdca0ee604d57b029a75ebce696",
-          "url": "https://stellar.expert/explorer/testnet/tx/401b57d6a36e1740d50c4adc9c12e53e7d8f2fdca0ee604d57b029a75ebce696",
+          "hash": "933df22970798db57c9e71c3fc92344c4c4fbe2faa1e871c7ed2b76788cf6623",
+          "url": "https://stellar.expert/explorer/testnet/tx/933df22970798db57c9e71c3fc92344c4c4fbe2faa1e871c7ed2b76788cf6623",
           "verified": true,
-          "ledger": 4766571
+          "ledger": 4767098
         },
         {
           "label": "REWARD paid (honest)",
-          "hash": "ff95f6ce1eec01a33755e5dfa6a428d10cfe0400e26d54245558bdf1333d2b47",
-          "url": "https://stellar.expert/explorer/testnet/tx/ff95f6ce1eec01a33755e5dfa6a428d10cfe0400e26d54245558bdf1333d2b47",
+          "hash": "3759c66a7efe2ea56b8bf82d459f966858a8a7bd60dba63de44fdb319e542fa2",
+          "url": "https://stellar.expert/explorer/testnet/tx/3759c66a7efe2ea56b8bf82d459f966858a8a7bd60dba63de44fdb319e542fa2",
           "verified": true,
-          "ledger": 4766572
+          "ledger": 4767099
         },
         {
           "label": "settle (fraudster)",
-          "hash": "12c6bab75e47807a98dadd554a4b21b898e7aa3afe46ca425fdae1b0f16a1b5a",
-          "url": "https://stellar.expert/explorer/testnet/tx/12c6bab75e47807a98dadd554a4b21b898e7aa3afe46ca425fdae1b0f16a1b5a",
+          "hash": "6f2188b8f79fd77b1403c7bdb88b63e8936c0bda6e79b112cee86aff077af4a1",
+          "url": "https://stellar.expert/explorer/testnet/tx/6f2188b8f79fd77b1403c7bdb88b63e8936c0bda6e79b112cee86aff077af4a1",
           "verified": true,
-          "ledger": 4766573
+          "ledger": 4767100
         },
         {
           "label": "REWARD paid (fraudster)",
-          "hash": "dbfad5e14f528d0bc3d415cb284ff93b3ba8943888677e224d0a20e9e72abf29",
-          "url": "https://stellar.expert/explorer/testnet/tx/dbfad5e14f528d0bc3d415cb284ff93b3ba8943888677e224d0a20e9e72abf29",
+          "hash": "432f48a0e11f521cc9b6de3fe459d7234abefa366cc92208d54f7c75ac9d5356",
+          "url": "https://stellar.expert/explorer/testnet/tx/432f48a0e11f521cc9b6de3fe459d7234abefa366cc92208d54f7c75ac9d5356",
           "verified": true,
-          "ledger": 4766574
+          "ledger": 4767101
         }
       ],
       "notes": [
@@ -97,21 +97,21 @@
       "minute": "2:10",
       "name": "Instant withdrawal",
       "narration": "No threshold. The fee is a rounding error against the reward.",
-      "seconds": 75.4,
+      "seconds": 75,
       "txs": [
         {
           "label": "REWARD burned",
-          "hash": "90fca40ec7c415016bff6f4b38f2966351bb9f17cb2fc4893a7395e9737919c8",
-          "url": "https://stellar.expert/explorer/testnet/tx/90fca40ec7c415016bff6f4b38f2966351bb9f17cb2fc4893a7395e9737919c8",
+          "hash": "2522319423fa48c2ab78a80e065a8c527e59b60002d199a97e51a3f6e5ff2876",
+          "url": "https://stellar.expert/explorer/testnet/tx/2522319423fa48c2ab78a80e065a8c527e59b60002d199a97e51a3f6e5ff2876",
           "verified": true,
-          "ledger": 4766588
+          "ledger": 4767115
         },
         {
           "label": "payout withdrawn",
-          "hash": "12dba97271f3e36b65f9e3d67a3b6492dd45de2966b94052c5c374d3fd0dd8a7",
-          "url": "https://stellar.expert/explorer/testnet/tx/12dba97271f3e36b65f9e3d67a3b6492dd45de2966b94052c5c374d3fd0dd8a7",
+          "hash": "183e386e5e9cf21e8d983073f50ade2e924a2fe27ac3b4465635ccc850972bb0",
+          "url": "https://stellar.expert/explorer/testnet/tx/183e386e5e9cf21e8d983073f50ade2e924a2fe27ac3b4465635ccc850972bb0",
           "verified": true,
-          "ledger": 4766589
+          "ledger": 4767116
         }
       ],
       "notes": [
@@ -123,14 +123,14 @@
       "minute": "2:40",
       "name": "Publisher withdrawal",
       "narration": "Accrued per action, withdrawn on demand, no minimum.",
-      "seconds": 4.6,
+      "seconds": 5.4,
       "txs": [
         {
           "label": "withdraw",
-          "hash": "89860a26e7abba5cb43f97e65038a7e5e16cfb3b73534ed7d683a8ecbedb2f1c",
-          "url": "https://stellar.expert/explorer/testnet/tx/89860a26e7abba5cb43f97e65038a7e5e16cfb3b73534ed7d683a8ecbedb2f1c",
+          "hash": "1febf69ed3b4625b3922a238c74244055c73afab7111454e2180c827bd037441",
+          "url": "https://stellar.expert/explorer/testnet/tx/1febf69ed3b4625b3922a238c74244055c73afab7111454e2180c827bd037441",
           "verified": true,
-          "ledger": 4766590
+          "ledger": 4767117
         }
       ],
       "notes": [
@@ -141,10 +141,10 @@
       "minute": "3:00",
       "name": "Cash out",
       "narration": "The anchor confirms the payout, and the bank details never reach us.",
-      "seconds": 5.5,
+      "seconds": 5.1,
       "txs": [],
       "notes": [
-        "anchor transaction `sep_ueruomhrjd3qqgwzmikx`",
+        "anchor transaction `sep_im0ffggrilugmkps9wda`",
         "no interactive URL: this anchor is SEP-6, which has no hosted page"
       ]
     },
@@ -152,21 +152,21 @@
       "minute": "3:20",
       "name": "Fraud scenario",
       "narration": "The reward comes back. The honest player is untouched.",
-      "seconds": 9.7,
+      "seconds": 10.5,
       "txs": [
         {
           "label": "clawback",
-          "hash": "dab6a1d23c12d600accb3395f7e94cf59a53eaf84ccda59394cf4d59404eeff6",
-          "url": "https://stellar.expert/explorer/testnet/tx/dab6a1d23c12d600accb3395f7e94cf59a53eaf84ccda59394cf4d59404eeff6",
+          "hash": "9b0b4bb01e070952a6f50d5ecafa33db4a4a9b83445283b117136bff45697cbe",
+          "url": "https://stellar.expert/explorer/testnet/tx/9b0b4bb01e070952a6f50d5ecafa33db4a4a9b83445283b117136bff45697cbe",
           "verified": true,
-          "ledger": 4766592
+          "ledger": 4767119
         },
         {
           "label": "refund to campaign",
-          "hash": "2ba2a7f315b547b0d399185bc05b84449cf75e27714d50626b9d5ed26be1eb40",
-          "url": "https://stellar.expert/explorer/testnet/tx/2ba2a7f315b547b0d399185bc05b84449cf75e27714d50626b9d5ed26be1eb40",
+          "hash": "ecfa74814624cd590eb5d4b5766646c1e378a95fd4fc5266fbe6f55dce106f72",
+          "url": "https://stellar.expert/explorer/testnet/tx/ecfa74814624cd590eb5d4b5766646c1e378a95fd4fc5266fbe6f55dce106f72",
           "verified": true,
-          "ledger": 4766593
+          "ledger": 4767120
         }
       ],
       "notes": [
@@ -178,14 +178,14 @@
       "minute": "3:45",
       "name": "Campaign closing",
       "narration": "Unspent budget goes back to the advertiser, by contract.",
-      "seconds": 5.3,
+      "seconds": 4.6,
       "txs": [
         {
           "label": "close_campaign",
-          "hash": "345e4aab10b72bac9dac8b28a3f416088a8f591900104677dbbbd2fec4cabb18",
-          "url": "https://stellar.expert/explorer/testnet/tx/345e4aab10b72bac9dac8b28a3f416088a8f591900104677dbbbd2fec4cabb18",
+          "hash": "d7b07aedcb5071c41d4709ec932d8e95a8db01cefa85374ce4e8b26fbf58f049",
+          "url": "https://stellar.expert/explorer/testnet/tx/d7b07aedcb5071c41d4709ec932d8e95a8db01cefa85374ce4e8b26fbf58f049",
           "verified": true,
-          "ledger": 4766594
+          "ledger": 4767121
         }
       ],
       "notes": [
