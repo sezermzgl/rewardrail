@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "bootstrap": "node src/bootstrap.js",
-    "prove-clawback": "node src/prove-clawback.js"
+    "prove-clawback": "node src/prove-clawback.js",
+    "issue-assets": "node src/issue-assets.js"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^13.0.0"
