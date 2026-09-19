@@ -366,3 +366,34 @@ The challenge's source account is checked against the `SIGNING_KEY` in the toml 
 Real: the authentication, the withdrawal record, the anchor's limits, the status transitions, and the fact that payout details go to the anchor rather than to us.
 
 Not real: the money. The anchor is a test deployment, its asset is SRT rather than a production stablecoin, and it accepts 1–10 SRT per withdrawal. Production means a licensed anchor per market — the same protocol against a different counterparty.
+
+## Funding a campaign through Soroswap
+
+The escrow settles in one asset, because share ratios and reserves have to be denominated in something. An advertiser holds whatever it holds. Left alone that mismatch becomes the advertiser's problem: acquire the exact asset first, then come back and open a campaign.
+
+Routing through [Soroswap](https://soroswap.finance) removes the step. The advertiser funds in XLM and the escrow receives the payout currency, at a price the router quotes and the advertiser sees before anything moves.
+
+### Why the router contract rather than the aggregator API
+
+Soroswap publishes an aggregator API that routes across several protocols. It is mainnet-only — its own health endpoint reports no indexed protocols on testnet — and it requires a key. The router contract is deployed on testnet and needs neither, so that is what we call.
+
+| Piece | Address |
+| --- | --- |
+| Router | `CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD` |
+| Factory | `CDP3HMUH6SMS3S7NPGNDJLULCOXXEPSHY4JKUKMBNQMATHDHWXRRJTBY` |
+| XLM/USDC pair | `CCBX3NZTCQLQFSPG7HBOKL4P2RVPOPVFHDNRTOSCCJWBTPL2GHEH7RQS` |
+
+The pair already existed with real depth, so the demo trades against liquidity nobody on this team provided.
+
+### Endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /advertiser/quote?xlm=250` | What the router would give, before anyone commits |
+| `POST /advertiser/fund` | Executes the swap and reports what was quoted, what was accepted and what arrived |
+
+### Two things the code is careful about
+
+**The price comes from the router, not from us.** A price derived from pool reserves is a guess about the protocol's own maths. `router_get_amounts_out` returns the number it will honour.
+
+**`amount_out_min` is the whole protection.** Without it a swap executes at whatever the pool offers by the time it lands, which on a thin pool is whatever an observer decides to make it. The quote is taken, one percent of slippage is allowed, and anything worse reverts. A ten minute deadline bounds the other direction: long enough to survive a busy network, short enough that a stale quote cannot execute at a price nobody agreed to.

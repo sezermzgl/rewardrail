@@ -90,6 +90,17 @@ export const config = {
    */
   demoCampaignId: Number(process.env.DEMO_CAMPAIGN_ID ?? 0),
 
+  /**
+   * Soroswap on testnet. The aggregator API is mainnet-only and key-gated,
+   * so we call the router contract, whose address the project publishes.
+   */
+  soroswapRouterId:
+    process.env.SOROSWAP_ROUTER_ID ??
+    'CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD',
+  /** Native XLM's SAC — the asset an advertiser is most likely to arrive with. */
+  xlmSacId:
+    process.env.XLM_SAC_ID ?? 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
+
   // Anchor. The SDF reference deployment on testnet: real SEP-10 and SEP-24,
   // test money. SRT is what it anchors and what its withdraw limits apply to.
   anchorHomeDomain: process.env.ANCHOR_HOME_DOMAIN ?? 'testanchor.stellar.org',

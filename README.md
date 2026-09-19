@@ -19,7 +19,7 @@ In rewarded advertising an advertiser pays for an install, a player earns points
 
 ## What it does
 
-The advertiser locks a campaign budget in an on-chain escrow. Every verified action releases part of it and splits it three ways. The player's share arrives as a clawback-enabled reward token, frozen for a short window, so fraud discovered after payout can still be reversed — and then converts to a balance the player withdraws to Turkish lira through an anchor.
+The advertiser funds a campaign in whatever asset it holds — routed to the campaign currency through Soroswap — and the budget is locked in an on-chain escrow. Every verified action releases part of it and splits it three ways. The player's share arrives as a clawback-enabled reward token, frozen for a short window, so fraud discovered after payout can still be reversed — and then converts to a balance the player withdraws to Turkish lira through an anchor.
 
 | Claim | Mechanism | Proof |
 | --- | --- | --- |
@@ -62,10 +62,13 @@ flowchart TD
   subgraph chain[Stellar testnet]
     ESC[Escrow contract<br/>Soroban]
     REW[REWARD asset<br/>classic, clawback enabled]
-    USD[TUSDC<br/>classic + SAC]
+    USD[Payout asset<br/>USDC, classic + SAC]
   end
-  ANCH[Anchor<br/>SEP-10 · SEP-24]
+  ANCH[Anchor<br/>SEP-10 · SEP-6]
+  DEX[Soroswap router]
 
+  ADV[Advertiser] -->|XLM| DEX
+  DEX -->|payout asset| ESC
   WEB -->|game finished| VAL
   VAL -->|signed proof| ESC
   VAL -->|pay and freeze| REW
@@ -92,6 +95,7 @@ Decisions are made off chain; value moves on chain. The chain never knows whethe
 | Feature | Where it is used |
 | --- | --- |
 | Soroban contracts | The escrow — conditional release, multi-party accounting |
+| **Soroswap** | Funding a campaign in XLM when the escrow settles in USDC. Router contract called directly, quote read from the protocol, slippage bounded |
 | Stellar Asset Contract | Lets the Soroban escrow hold a classic asset |
 | Clawback (CAP-35) | Reversing a fraudulent reward after payout |
 | `AUTH_REQUIRED` + `AUTH_REVOCABLE` | Freezing a reward for the clawback window, so the window is enforced by the ledger |
@@ -141,7 +145,13 @@ npm run e2e               # the whole demo, end to end, with assertions
 npm run use-anchor-asset   # trustlines, the SAC, and a campaign funded in USDC
 ```
 
-The advertiser needs testnet USDC first, from [faucet.circle.com](https://faucet.circle.com) (20 per request). `npm run fund-from-anchor` does it as a TRY bank transfer instead, once the anchor's deposit leg is back.
+The advertiser needs the payout asset first. Three ways, in order of how real they are:
+
+| Route | Command | Notes |
+| --- | --- | --- |
+| Swap XLM through Soroswap | `POST /advertiser/fund {"xlm":250}` | A real swap against real testnet liquidity |
+| TRY bank transfer through the anchor | `npm run fund-from-anchor` | Written and working up to the anchor's payout leg, which currently stalls |
+| Circle faucet | [faucet.circle.com](https://faucet.circle.com) | 20 USDC per request, for when you just need funds |
 
 ### 4. Run the app
 
@@ -228,7 +238,7 @@ Nothing in that flow is stubbed. Endpoints are discovered from the anchor's `ste
 
 ## What is real and what is not
 
-Real: the contract, the proofs, clawback, the freeze, sponsored accounts, fee-bumps, and both anchor integrations. The USDC is Circle's own testnet issuance.
+Real: the contract, the proofs, clawback, the freeze, sponsored accounts, fee-bumps, both anchor integrations, and the Soroswap route. The USDC is Circle's own testnet issuance and the swap moves real liquidity in a pool we do not own.
 
 Not real: the bank. The anchor simulates the TRY leg — no IBAN receives money and no KYC is performed. Production means a licensed anchor, and the integration is the same code against a different home domain.
 
@@ -236,7 +246,7 @@ Not real: the bank. The anchor simulates the TRY leg — no IBAN receives money 
 
 1. **The TRY on-ramp.** The off-ramp works; the deposit direction is written and waiting on the anchor, whose payout leg stalls at `pending_anchor`. Once it clears, a campaign budget enters as a bank transfer and the loop closes on both sides — `npm run fund-from-anchor` already runs it.
 2. **Atomic settlement.** Hand the REWARD SAC admin to the escrow so `settle` mints in one transaction. This is the documented pattern and runs in production today as USDT0 — with one hard prerequisite: `set_admin` first, then lock the issuer, never the reverse.
-3. **Real DEX conversion.** Route reward-to-payout conversion through an ecosystem swap protocol rather than a one-to-one internal exchange.
+3. **Reward-to-payout through the DEX too.** Campaign funding routes through Soroswap already; the reward conversion is still a one-to-one internal exchange because REWARD has no pool. Seeding one would let a player take their payout in any asset with liquidity.
 4. **Pilot with one platform.** A single operator running real campaigns is worth more than breadth, and is the path toward SCF and InstAward.
 
 ## License
