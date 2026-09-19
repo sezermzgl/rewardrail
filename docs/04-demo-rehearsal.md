@@ -22,6 +22,12 @@ The console never calls the validator from the browser. It goes through
 — the reads stay open to anyone, and a POST straight at the validator without
 that key is refused.
 
+**A merged fix is not a live fix.** The Vercel project is not connected to the
+repository — the GitHub app is not installed on it, and connecting was refused
+— so the site does not track `main`. It updates only when someone runs
+`vercel deploy --prod`. Anything that changes `packages/web` has to be
+deployed by hand or the URL a judge is holding stays on the previous build.
+
 **Warm the validator before presenting.** It is on Render's free instance type,
 which stops the service after fifteen minutes of inactivity; the next request
 pays about a minute for the cold start and the in-memory player and tier state
