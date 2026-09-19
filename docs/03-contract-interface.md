@@ -196,3 +196,23 @@ contract error arrives at the API layer as one opaque string. See F1.
 | #10 | Build the digest with ScVal-XDR addresses, not raw keys; expect traps, not error 5 |
 | #11 | Conversion is: burn REWARD classically, then `withdraw` the player's TUSDC claim. No sixth function, no DEX |
 | #12 | Three hashes: classic clawback, burn, `refund_clawback` |
+
+---
+
+## Breaking change — 2026-09-19, escrow redeployed
+
+`CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI`
+
+A player's entitlement is no longer a claim. `claim_of` returns `0` for players and is now only publisher and platform balances. Anything reading a player balance must call `reserve_of(campaign_id, player)`.
+
+The split exists because a claim is withdrawable by its owner. A player's payout is owed against a REWARD token they still hold, so letting them call `withdraw` would pay the escrowed value while they kept the reward — the same value twice.
+
+| Change | Before | Now |
+| --- | --- | --- |
+| Player balance | `claim_of` | `reserve_of` |
+| Player payout | `withdraw`, player auth | `redeem_player(campaign_id, player)`, platform auth, always paid to that player |
+| Clawback refund | `refund_clawback(campaign_id, player, amount)` | `refund_clawback(campaign_id, player)` — the contract uses the reserve, so the platform cannot inflate `remaining` |
+
+Also fixed: `Spent` action ids now get a TTL extension. Without it the replay guard expired and a settled action became payable again.
+
+Verified by `escrow_balance_always_covers_remaining_plus_everything_owed` in the contract tests: the escrow's token balance always equals `remaining` plus every open claim and reserve.
