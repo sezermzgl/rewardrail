@@ -6,6 +6,7 @@
   "scripts": {
     "bootstrap": "node src/bootstrap.js",
     "prove-clawback": "node src/prove-clawback.js",
+    "prove-sac-admin": "node src/prove-sac-admin.js",
     "issue-assets": "node src/issue-assets.js",
     "signup": "node src/signup.js",
     "deploy-escrow": "node src/deploy-escrow.js",
