@@ -1,0 +1,49 @@
+# The validator, deployed as a container.
+#
+# It is not serverless on purpose. Player records, the tier clock and the event
+# feed the transaction log reads all live in memory, and a signup writes its
+# custodial key to disk — none of which survives an instance that comes and
+# goes between requests.
+#
+# On the free instance type Render still stops the service after 15 minutes of
+# inactivity and cold-starts it on the next request, which costs about a minute
+# and resets that state. A fresh visitor is unaffected, because the demo builds
+# its own state from the sign-in onwards and the campaign itself lives on chain.
+# What it does break is a restart in the middle of a run: the clawback window
+# would read as closed for a reward the ledger still has frozen, which is F6 in
+# docs/03-contract-interface.md. Warm the service before presenting.
+#
+# The five secrets below are marked sync: false, so they are never in this file
+# and Render asks for them once when the blueprint is first applied.
+
+services:
+  - type: web
+    name: rewardrail-validator
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./packages/validator/Dockerfile
+    dockerContext: ./packages/validator
+    healthCheckPath: /health
+    envVars:
+      # Render assigns PORT itself; config.js reads it.
+      - key: WRITE_SECRET
+        sync: false
+      - key: VALIDATOR_KEYS
+        sync: false
+      - key: VALIDATOR_PLAYERS
+        sync: false
+      - key: VALIDATOR_DEPLOYED
+        sync: false
+      - key: DEMO_CAMPAIGN_ID
+        value: "7"
+      - key: ANCHOR_HOME_DOMAIN
+        value: tr-mock-anchor.fly.dev
+      - key: ANCHOR_ASSET_CODE
+        value: USDC
+      - key: PAYOUT_ASSET_CODE
+        value: USDC
+      - key: PAYOUT_ASSET_ISSUER
+        value: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+      - key: CLAWBACK_WINDOW_SECONDS
+        value: "60"
