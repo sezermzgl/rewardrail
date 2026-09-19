@@ -1,0 +1,17 @@
+# The deploy uploads the working tree, not a git commit, so the secrets have to
+# be excluded here as well as in .gitignore. keys.json holds the issuer,
+# validator, sponsor, advertiser, publisher and platform secrets; players.json
+# holds the custodial player keys. Neither is needed to build the web app, and
+# neither belongs in a build context.
+keys.json
+players.json
+.env
+.env.*
+!.env.example
+
+# Nothing outside the web app is built here.
+packages/contracts/target/
+node_modules/
+.next/
+*.tsbuildinfo
+.worktrees/

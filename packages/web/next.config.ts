@@ -1,25 +1,18 @@
 import type { NextConfig } from "next";
 
 /**
- * The validator is a plain Express service with no CORS headers, so a browser
- * refuses to call it cross-origin. Rather than loosening the backend, the
- * panels call a same-origin path and Next forwards it.
+ * The validator used to be reached through a rewrite declared here. It is a
+ * route handler now — `app/api/validator/[...path]/route.ts` — because the
+ * write routes require a secret header and a rewrite cannot add one without
+ * putting the secret in the browser.
  *
- * Same-origin also means the POSTs in #14–#16 never trigger a preflight, and
- * there is no CORS configuration to get wrong wherever this is served.
+ * What has not changed is why the panels go through this app at all: the
+ * validator sends no CORS headers, so a browser refuses to call it
+ * cross-origin, and same-origin also means the POSTs in #14-#16 never trigger
+ * a preflight.
  */
-const VALIDATOR_ORIGIN = process.env.VALIDATOR_ORIGIN ?? 'http://localhost:8787';
-
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  async rewrites() {
-    return [
-      {
-        source: '/api/validator/:path*',
-        destination: `${VALIDATOR_ORIGIN}/:path*`,
-      },
-    ];
-  },
 };
 
 export default nextConfig;
