@@ -1,0 +1,35 @@
+# The validator's deployment.
+#
+# One machine that stays up, deliberately. The player list, the tier clock and
+# the event feed are in memory, so a machine that suspends between requests
+# loses the first half of a demo — the opposite of what the shared transaction
+# log is for.
+
+app = "rewardrail-validator"
+primary_region = "fra"
+
+[build]
+
+[env]
+  PORT = "8080"
+  ANCHOR_HOME_DOMAIN = "tr-mock-anchor.fly.dev"
+  ANCHOR_ASSET_CODE = "USDC"
+  PAYOUT_ASSET_CODE = "USDC"
+  PAYOUT_ASSET_ISSUER = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+  DEMO_CAMPAIGN_ID = "3"
+  CLAWBACK_WINDOW_SECONDS = "60"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.http_options.response.headers]
+    # The web app proxies server-side, so no browser calls this cross-origin.
+    X-Content-Type-Options = "nosniff"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
