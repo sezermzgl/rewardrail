@@ -117,7 +117,7 @@ The validator holds a signing key the escrow recognizes. The escrow only pays ou
 2. **Player account.** When the player signs up, the platform opens their account with a sponsored reserve and creates a trustline for the REWARD asset. The player never needs XLM.
 3. **Action.** The player completes the task. The platform runs its own fraud checks.
 4. **Proof.** The validator signs a proof containing the campaign and player identity and submits it to the escrow. The same action cannot be paid twice.
-5. **Distribution.** The escrow splits the shares in a single transaction. The player's share arrives as REWARD; the publisher and platform shares accrue as claims inside the escrow.
+5. **Distribution.** The escrow records all three shares against the campaign, and the validator immediately pays the player's share out as REWARD. The publisher and platform shares stay in the escrow as claims until they are withdrawn. Both steps are on chain and take seconds.
 6. **Cash-out.** The player converts REWARD to USDC and exits to local currency through an anchor. There is no threshold; trusted accounts convert instantly, new accounts wait until the window closes.
 7. **Fraud.** If fraud is found within the window, the issuer claws the REWARD back from that account and the amount returns to the escrow to be redistributed within the same campaign. Once the window closes, the authority lapses.
 8. **Closing.** At the end of the campaign, unspent budget is returned to the advertiser.

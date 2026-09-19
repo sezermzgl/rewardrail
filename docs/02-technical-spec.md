@@ -107,11 +107,21 @@ pub fn settle(
 ) -> Result<(), Error>;
 ```
 
-`settle` does the following in order: checks whether `action_id` has been used before, verifies the signature against the campaign's `validator` key, checks that `remaining` is sufficient, mints the player's share as REWARD, records the publisher and platform shares as claims, and marks `action_id` as spent.
+`settle` does the following in order: checks whether `action_id` has been used before, verifies the signature against the campaign's `validator` key, checks that `remaining` is sufficient, records all three shares as claims, and marks `action_id` as spent.
 
-### Important design notes
+### The player's reward is a separate transaction
 
-- **The player's share is minted, not transferred.** The escrow holds TUSDC; the player receives REWARD. The matching TUSDC stays in escrow as reserve and is paid out when the player converts.
+`settle` does not mint REWARD. It records the player's entitlement, and the validator immediately follows it with a classic payment from the REWARD issuer to the player.
+
+The reason is an ownership constraint. REWARD is a classic asset, so the admin of its Stellar Asset Contract is the classic issuer account. For the escrow to mint it, the issuer would have to sign a Soroban authorization entry attached to every `settle` call. That is possible — the validator already holds the issuer key — but authorization entries are fiddly to assemble and hard to diagnose when they fail, which is a poor trade inside a hackathon.
+
+The cost of the split is that a payout is two transactions rather than one, and in principle `settle` can land while the reward payment fails. The validator retries, and because `action_id` is already marked spent the retry cannot double-pay. Both transactions are visible in the explorer, so nothing is lost in auditability.
+
+In production the atomic version is the right design, and moving to it does not change any other part of the system.
+
+### Other design notes
+
+- **The escrow holds TUSDC, the player holds REWARD.** The TUSDC backing a player's reward stays in escrow as reserve and is paid out when the player converts.
 - **The publisher share is pull, not push.** `settle` only increments a balance, it does not transfer. The transfer happens on a `withdraw` call.
 - **`action_id` is the heart of replay protection.** Even if the validator submits the same proof twice, the second one is rejected.
 - **Basis points, not decimals.** The three shares must sum to exactly 10000; `open_campaign` verifies this.
