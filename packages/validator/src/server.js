@@ -35,6 +35,7 @@ import {
   setTrustline,
 } from './chain.js';
 import { signAction } from './proof.js';
+import { quote as swapQuote, swapExactIn } from './soroswap.js';
 import {
   anchorToml,
   withdrawInfo,
@@ -454,6 +455,73 @@ app.post('/fraud/flag', async (req, res) => {
     });
   } catch (err) {
     fail(res, 400, 'clawback failed', err.message);
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Soroswap — funding a campaign in whatever the advertiser holds
+ * ------------------------------------------------------------------ */
+
+const SWAP_PATH = () => [config.xlmSacId, config.tusdcSacId];
+
+/** What the router would give, before anyone commits to it. */
+app.get('/advertiser/quote', async (req, res) => {
+  const xlm = Number(req.query.xlm ?? 100);
+  if (!Number.isFinite(xlm) || xlm <= 0) return fail(res, 400, 'xlm must be positive');
+
+  try {
+    const amountIn = BigInt(Math.round(xlm * 10_000_000));
+    const quoted = await swapQuote(amountIn, SWAP_PATH());
+    res.json({
+      in: { asset: 'XLM', amount: stroopsToUnits(quoted.amountIn) },
+      out: { asset: 'USDC', amount: stroopsToUnits(quoted.amountOut) },
+      via: 'soroswap',
+      router: config.soroswapRouterId,
+    });
+  } catch (err) {
+    fail(res, 502, 'quote failed', err.message);
+  }
+});
+
+/**
+ * Convert the advertiser's XLM into the campaign currency.
+ *
+ * The escrow settles in one asset; an advertiser holds whatever it holds.
+ * This is the step that stops that mismatch from being the advertiser's
+ * problem — and it is a real swap against real liquidity, not an internal
+ * rate we invented.
+ */
+app.post('/advertiser/fund', async (req, res) => {
+  const { xlm } = req.body ?? {};
+  const amount = Number(xlm);
+  if (!Number.isFinite(amount) || amount <= 0) return fail(res, 400, 'xlm must be positive');
+
+  try {
+    const swapped = await swapExactIn({
+      amountIn: BigInt(Math.round(amount * 10_000_000)),
+      path: SWAP_PATH(),
+      to: keys.advertiser.publicKey(),
+      signer: keys.advertiser,
+    });
+
+    logEvent({
+      kind: 'swap',
+      actor: keys.advertiser.publicKey(),
+      amount: stroopsToUnits(swapped.amountOut),
+      hash: swapped.hash,
+      url: explorer(swapped.hash),
+    });
+
+    res.json({
+      spent: { asset: 'XLM', amount: stroopsToUnits(swapped.amountIn) },
+      received: { asset: 'USDC', amount: stroopsToUnits(swapped.amountOut) },
+      quoted: stroopsToUnits(swapped.quotedOut),
+      minAccepted: stroopsToUnits(swapped.minOut),
+      via: 'soroswap',
+      tx: { hash: swapped.hash, url: explorer(swapped.hash) },
+    });
+  } catch (err) {
+    fail(res, 502, 'swap failed', err.message);
   }
 });
 

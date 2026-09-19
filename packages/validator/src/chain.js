@@ -129,7 +129,65 @@ export const sc = {
   i128: (v) => nativeToScVal(BigInt(v), { type: 'i128' }),
   address: (pk) => new Address(pk).toScVal(),
   bytes: (buf) => xdr.ScVal.scvBytes(Buffer.from(buf)),
+  addressVec: (ids) => xdr.ScVal.scvVec(ids.map((id) => new Address(id).toScVal())),
 };
+
+/**
+ * Read from any contract, not just the escrow. Simulated, never submitted.
+ *
+ * Used for quotes from protocols we do not own, where asking the contract is
+ * the only honest way to know a price.
+ */
+export async function readAnyContract(contractId, method, args = []) {
+  const account = await horizon.loadAccount(simulationSource().publicKey());
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(new Contract(contractId).call(method, ...args))
+    .setTimeout(30)
+    .build();
+
+  const sim = await soroban.simulateTransaction(tx);
+  if (rpc.Api.isSimulationError(sim)) {
+    throw new Error(`simulation failed for ${method}: ${sim.error}`);
+  }
+  return scValToNative(sim.result.retval);
+}
+
+/** Write to any contract. Same flow as the escrow, different address. */
+export async function invokeAnyContract(contractId, method, args, signer) {
+  const account = await horizon.loadAccount(signer.publicKey());
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(new Contract(contractId).call(method, ...args))
+    .setTimeout(60)
+    .build();
+
+  const prepared = await soroban.prepareTransaction(tx);
+  prepared.sign(signer);
+
+  const sent = await soroban.sendTransaction(prepared);
+  if (sent.status === 'ERROR') {
+    throw new Error(`${method} rejected: ${JSON.stringify(sent.errorResult)}`);
+  }
+
+  let result = await soroban.getTransaction(sent.hash);
+  const deadline = Date.now() + 45_000;
+  while (result.status === 'NOT_FOUND' && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 1000));
+    result = await soroban.getTransaction(sent.hash);
+  }
+  if (result.status !== 'SUCCESS') {
+    throw new Error(`${method} failed on chain: ${result.status}`);
+  }
+  return {
+    hash: sent.hash,
+    value: result.returnValue ? scValToNative(result.returnValue) : null,
+  };
+}
 
 /** Read-only contract call. Simulated, never submitted, so it costs nothing. */
 export async function readContract(method, args = []) {
