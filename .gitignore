@@ -26,3 +26,4 @@ deployed.local.json
 
 # isolated feature worktrees
 .worktrees/
+*.tsbuildinfo
