@@ -30,10 +30,13 @@ export function shortHash(hash: string): string {
 
 const ACTIONS: Record<LogKind, string> = {
   campaign: 'Campaign opened, budget locked',
+  swap: 'Advertiser funding swapped into the payout asset',
   signup: 'Player account created, reserves sponsored',
   settle: 'Action verified, three shares split',
   reward: 'Reward paid to the player',
   convert: 'Reward converted and withdrawn',
+  cashout: 'Withdrawal opened at the anchor',
+  reconcile: 'Payout re-sent after a mismatch',
   withdraw: 'Accrued share withdrawn',
   flag: 'Player flagged as fraudulent',
   clawback: 'Reward pulled back',
@@ -43,10 +46,13 @@ const ACTIONS: Record<LogKind, string> = {
 
 const ROLES: Partial<Record<LogKind, LogActorRole>> = {
   campaign: 'advertiser',
+  swap: 'advertiser',
   signup: 'player',
   settle: 'player',
   reward: 'player',
   convert: 'player',
+  cashout: 'player',
+  reconcile: 'platform',
   withdraw: 'publisher',
   flag: 'operator',
   clawback: 'operator',
@@ -54,9 +60,30 @@ const ROLES: Partial<Record<LogKind, LogActorRole>> = {
   close: 'advertiser',
 };
 
+/**
+ * The validator's own names for two events, which are not the log's.
+ *
+ * The feed says `campaign_open` and `campaign_close`; the log has always
+ * called them `campaign` and `close`, and the panels ask `useLatestProof` for
+ * those. Translating here rather than renaming either side keeps one mapping
+ * in one place — and an unmapped kind is dropped silently, which is how a
+ * campaign's own opening hash went missing from the log it is supposed to
+ * start.
+ */
+const ALIASES: Record<string, LogKind> = {
+  campaign_open: 'campaign',
+  campaign_close: 'close',
+};
+
 const KNOWN_KINDS = new Set<string>(Object.keys(ACTIONS));
 
 const isLogKind = (kind: string): kind is LogKind => KNOWN_KINDS.has(kind);
+
+/** The log's kind for whatever the validator called it, if it has one. */
+function toLogKind(kind: string): LogKind | null {
+  if (isLogKind(kind)) return kind;
+  return ALIASES[kind] ?? null;
+}
 
 /**
  * A row's identity.
@@ -88,17 +115,18 @@ export function fromValidatorEvent(
   event: ValidatorEvent,
   labels: Record<string, string> = {},
 ): LogEntry | null {
-  if (!isLogKind(event.kind)) return null;
+  const kind = toLogKind(event.kind);
+  if (!kind) return null;
 
   const address = event.actor;
   return {
-    id: entryId(event.kind, event.at, event.hash),
+    id: entryId(kind, event.at, event.hash),
     at: event.at,
-    kind: event.kind,
-    action: ACTIONS[event.kind],
+    kind,
+    action: ACTIONS[kind],
     actor: resolveActor(address, address ? labels[address] : undefined),
     actorAddress: address,
-    role: ROLES[event.kind],
+    role: ROLES[kind],
     amount: formatAmount(event.amount),
     hash: event.hash,
     url: event.hash ? explorerTx(event.hash) : undefined,

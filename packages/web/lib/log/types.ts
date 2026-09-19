@@ -7,10 +7,13 @@
 
 export type LogKind =
   | 'campaign' // advertiser opened a campaign
+  | 'swap' // advertiser's XLM routed into the payout asset
   | 'signup' // a player account was sponsored into existence
   | 'settle' // a verified action split three ways
   | 'reward' // REWARD reached the player
-  | 'convert' // REWARD burned, TUSDC withdrawn from escrow
+  | 'convert' // REWARD burned, payout withdrawn from escrow
+  | 'cashout' // the anchor opened a withdrawal to local currency
+  | 'reconcile' // a payout re-sent after the chain and the store disagreed
   | 'withdraw' // a publisher or the platform pulled its claim
   | 'flag' // an operator marked a player fraudulent
   | 'clawback' // REWARD pulled back from the player
