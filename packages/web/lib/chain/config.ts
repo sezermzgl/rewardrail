@@ -12,6 +12,8 @@ export const config = {
   networkPassphrase:
     process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ?? 'Test SDF Network ; September 2015',
   escrowId: process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID ?? '',
+  /** The validator backend. Not a chain endpoint, but the app's only other one. */
+  validatorUrl: process.env.NEXT_PUBLIC_VALIDATOR_URL ?? 'http://localhost:4000',
   tusdcSacId: process.env.NEXT_PUBLIC_TUSDC_SAC_ID ?? '',
   explorerBase: 'https://stellar.expert/explorer/testnet',
 };
