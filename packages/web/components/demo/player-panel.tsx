@@ -6,9 +6,11 @@
  * Language constraint (the spec's "Consistency in language"): the words
  * wallet, seed, private key, gas, transaction fee and blockchain do not appear
  * here. This must read like a rewards app, because that is the visual proof of
- * the design claim — the player never learns any of this exists.
+ * the design claim — the player never learns any of this exists. A test holds
+ * the line; see player-panel.test.ts.
  */
 import { useCallback } from 'react';
+import { Sparkles, UserRound } from 'lucide-react';
 
 import {
   completeAction,
@@ -17,27 +19,19 @@ import {
   type ValidatorPlayer,
 } from '@/lib/demo/validator';
 import { useAction } from '@/lib/demo/use-action';
+import { useLatestProof } from '@/lib/demo/use-proof';
 import { useLive } from '@/lib/demo/use-live';
 
-import { Action, Figure, Panel, Placeholder, Problem } from './panel';
+import { Action, Note, Panel, Problem, Proof, Stat } from './panel';
 
-function statusLine(player: ValidatorPlayer): { text: string; tone: string } {
-  if (player.flagged) return { text: 'On hold', tone: 'var(--warn)' };
-  if (player.canConvert) return { text: 'Can cash out now', tone: 'var(--accent)' };
-  const seconds = player.windowRemainingSeconds;
-  return {
-    text: seconds && seconds > 0 ? `Available in ${seconds}s` : 'On hold',
-    tone: 'var(--muted)',
-  };
+function status(player: ValidatorPlayer): { text: string; tone: string } {
+  if (player.flagged) return { text: 'On hold', tone: 'held' };
+  if (player.canConvert) return { text: 'Ready to cash out', tone: 'ready' };
+  const left = player.windowRemainingSeconds;
+  return { text: left && left > 0 ? `Ready in ${left}s` : 'On hold', tone: 'waiting' };
 }
 
-function PlayerCard({
-  player,
-  campaignId,
-}: {
-  player: ValidatorPlayer;
-  campaignId: number;
-}) {
+function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignId: number }) {
   const earn = useAction(
     useCallback(() => completeAction(campaignId, player.publicKey), [campaignId, player.publicKey]),
   );
@@ -45,31 +39,39 @@ function PlayerCard({
     useCallback(() => convertReward(campaignId, player.publicKey), [campaignId, player.publicKey]),
   );
 
-  const status = statusLine(player);
+  const state = status(player);
   const nothingToCashOut = Number(player.rewardBalance) <= 0;
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-md border p-3"
-      style={{ borderColor: 'var(--border)' }}
-    >
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="font-medium">{player.label}</span>
-        <span className="text-[12px] font-medium" style={{ color: status.tone }}>
-          {status.text}
+    <div className="dcard" data-flagged={player.flagged}>
+      <div className="dcard__top">
+        <UserRound size={16} strokeWidth={2.2} style={{ color: 'var(--muted)' }} />
+        <span className="dcard__name">{player.label}</span>
+        <span className="dpill" data-tone={state.tone}>
+          {state.text}
         </span>
       </div>
 
-      <Figure label="Rewards earned" value={player.rewardBalance} unit="pts" />
-      <Figure label="Cashed out" value={player.tusdcBalance} unit="USD" />
-      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
-        {player.tasks} {player.tasks === 1 ? 'task' : 'tasks'} completed
-      </p>
+      <div className="dstats">
+        <Stat
+          label="Rewards earned"
+          value={player.rewardBalance}
+          unit="pts"
+          tone={Number(player.rewardBalance) > 0 ? 'positive' : 'quiet'}
+        />
+        <Stat label="Cashed out" value={player.tusdcBalance} unit="USD" />
+      </div>
 
-      <div className="mt-1 flex flex-wrap gap-2">
-        <Action label="Complete a task" onClick={earn.run} pending={earn.pending} />
+      <div className="dactions">
+        <Action
+          label="Complete a task"
+          onClick={earn.run}
+          pending={earn.pending}
+          icon={<Sparkles size={14} strokeWidth={2.4} />}
+        />
         <Action
           label="Cash out"
+          variant="quiet"
           onClick={cashOut.run}
           pending={cashOut.pending}
           disabled={!player.canConvert || nothingToCashOut}
@@ -83,6 +85,10 @@ function PlayerCard({
         />
       </div>
 
+      <Note>
+        {player.tasks} {player.tasks === 1 ? 'task' : 'tasks'} completed
+      </Note>
+
       {earn.error ? <Problem>{earn.error}</Problem> : null}
       {cashOut.error ? <Problem>{cashOut.error}</Problem> : null}
     </div>
@@ -91,16 +97,29 @@ function PlayerCard({
 
 export function PlayerPanel({ campaignId }: { campaignId: number }) {
   const { data, error, loading } = useLive<ValidatorPlayer[]>(fetchPlayers, { pollMs: 3000 });
+  const proof = useLatestProof(['reward', 'convert']);
   const offline = error?.includes('not reachable');
 
   return (
-    <Panel title="Player" role="two accounts">
-      {loading && !data ? <Placeholder>Loading accounts…</Placeholder> : null}
+    <Panel
+      title="Player"
+      role="two accounts"
+      icon={<UserRound size={16} strokeWidth={2.2} />}
+      proof={
+        <Proof
+          label="Last payout"
+          hash={proof?.short}
+          url={proof?.url}
+          fallback="no rewards yet"
+        />
+      }
+    >
+      {loading && !data ? <Note>Loading accounts…</Note> : null}
       {offline ? (
-        <Placeholder>
+        <Note>
           Accounts appear once the platform service is running. The advertiser and
           publisher panels read the chain directly and stay live without it.
-        </Placeholder>
+        </Note>
       ) : error ? (
         <Problem>{error}</Problem>
       ) : null}
@@ -109,11 +128,9 @@ export function PlayerPanel({ campaignId }: { campaignId: number }) {
         <PlayerCard key={player.publicKey} player={player} campaignId={campaignId} />
       ))}
 
-      {data?.length === 0 ? <Placeholder>No accounts yet.</Placeholder> : null}
+      {data?.length === 0 ? <Note>No accounts yet.</Note> : null}
 
-      <p className="mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>
-        No payout threshold. Rewards arrive in seconds.
-      </p>
+      <Note>No payout threshold. Rewards arrive in seconds.</Note>
     </Panel>
   );
 }

@@ -432,3 +432,260 @@ a {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 }
 }
+
+/* ------------------------------------------------------------------ *
+ * The live demo console (/demo)
+ *
+ * The landing already draws this dashboard as a mock in .actor-panel.
+ * The real thing borrows its vocabulary deliberately — window chrome,
+ * bordered stat tiles, and the dark strip that carries a proof — so a
+ * visitor who clicks through from the landing recognises the product
+ * rather than meeting a second one.
+ * ------------------------------------------------------------------ */
+
+.demo-page { padding-block: 34px 72px; }
+
+.demo-shell {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #edf0ea;
+  box-shadow: 0 30px 80px rgb(26 46 36 / 10%);
+}
+
+.demo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: #e6e9e3;
+}
+.demo-bar__dots { display: flex; gap: 5px; }
+.demo-bar__dots i { width: 7px; height: 7px; border-radius: 50%; background: #cbd1cb; }
+.demo-bar__title { font-size: 0.82rem; font-weight: 800; letter-spacing: -0.03em; }
+.demo-bar__meta {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+.demo-bar__meta b { color: var(--ink); font-weight: 700; }
+
+/* A live indicator earns its pulse: it means the panels are reading the
+   chain right now, not that something is merely animated. */
+.demo-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid #c7e3d5;
+  border-radius: 999px;
+  background: #eef8f2;
+  color: var(--green);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.demo-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: demo-pulse 1.9s ease-in-out infinite;
+}
+@keyframes demo-pulse { 50% { opacity: 0.25; } }
+
+.demo-grid {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) { .demo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- a panel ---- */
+
+.dpanel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: white;
+  box-shadow: 0 20px 55px rgb(22 38 30 / 8%);
+}
+.dpanel__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #f4f5f1;
+}
+.dpanel__head svg { color: var(--green); }
+.dpanel__head h2 { margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: -0.035em; }
+.dpanel__head small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dpanel__body { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 14px; padding: 18px; }
+
+/* ---- stat tiles ---- */
+
+.dstats { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dstats--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dstat {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+.dstat span { color: var(--muted); font-size: 0.64rem; }
+.dstat strong { overflow-wrap: anywhere; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.04em; }
+.dstat u { color: var(--muted); font-size: 0.62rem; font-weight: 600; text-decoration: none; }
+.dstat[data-tone="positive"] strong { color: var(--green); }
+.dstat[data-tone="warning"] strong { color: var(--coral); }
+.dstat[data-tone="quiet"] strong { color: var(--muted); }
+
+/* ---- tables ---- */
+
+.dtable { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+.dtable th {
+  padding-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.dtable td { padding: 9px 0; border-top: 1px solid var(--line); }
+.dtable .right { text-align: right; }
+.dtable tbody tr:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+
+/* ---- player cards ---- */
+
+.dcard { display: grid; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 15px; }
+.dcard[data-flagged="true"] { border-color: #f0c9c3; background: #fff8f6; }
+.dcard__top { display: flex; align-items: center; gap: 10px; }
+.dcard__name { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.03em; }
+
+.dpill {
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.dpill[data-tone="ready"] { background: #eef8f2; color: var(--green); }
+.dpill[data-tone="waiting"] { background: #f1f2ee; color: var(--muted); }
+.dpill[data-tone="held"] { background: #fff1ed; color: #9e4f43; }
+
+/* ---- actions ---- */
+
+.dactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.dbutton {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 750;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.dbutton:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--green); background: var(--green); }
+.dbutton--quiet { border-color: var(--line); background: transparent; color: var(--ink); }
+.dbutton--quiet:hover:not(:disabled) { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.dbutton--danger { border-color: #e7c2ba; background: transparent; color: #9e4f43; }
+.dbutton--danger:hover:not(:disabled) { background: var(--coral); border-color: var(--coral); color: white; }
+.dbutton:disabled { cursor: not-allowed; opacity: 0.4; transform: none; }
+
+/* ---- the proof strip ---- */
+
+.dtx {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding: 13px 18px;
+  background: var(--ink);
+  color: white;
+  font-size: 0.68rem;
+}
+.dtx span { color: #a7b1ab; }
+.dtx a, .dtx code { margin-left: auto; overflow-wrap: anywhere; color: var(--lime); text-decoration: none; }
+.dtx a:hover { text-decoration: underline; }
+
+/* ---- notes, problems, empty states ---- */
+
+.dnote { margin: 0; color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+.dproblem {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #f0c9c3;
+  border-radius: 11px;
+  background: #fff5f2;
+  color: #9e4f43;
+  font-size: 0.72rem;
+}
+
+/* ---- the shared log ---- */
+
+.dlog { border-top: 1px solid var(--line); background: var(--surface); }
+.dlog__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.dlog__head h2 { margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: -0.035em; }
+.dlog__head small { color: var(--muted); font-size: 0.66rem; }
+.dlog__clear {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.dlog__clear:hover { background: white; color: var(--ink); }
+.dlog__scroll { overflow-x: auto; padding: 4px 20px 18px; }
+.dlog .dtable { min-width: 620px; }
+.dlog__hash {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--lime);
+  font-size: 0.68rem;
+  text-decoration: none;
+}
+.dlog__hash:hover { background: var(--green); color: white; }
+.dlog__empty { padding: 26px 20px 30px; color: var(--muted); font-size: 0.78rem; }

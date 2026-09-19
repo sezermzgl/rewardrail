@@ -1,11 +1,13 @@
 'use client';
 
 /**
- * The demo: four panels side by side, one shared log beneath them.
+ * The demo: four panels and one shared log, on a single screen.
  *
  * One page on purpose. Switching pages breaks the flow and scatters the
- * judges' attention, so everything the demo claims is visible at once.
+ * judges' attention, so everything the demo claims stays visible at once.
  */
+import Link from 'next/link';
+
 import { AdvertiserPanel } from '@/components/demo/advertiser-panel';
 import { OperatorPanel } from '@/components/demo/operator-panel';
 import { PlayerPanel } from '@/components/demo/player-panel';
@@ -20,25 +22,44 @@ const CAMPAIGN_ID = Number(process.env.NEXT_PUBLIC_CAMPAIGN_ID ?? 0);
 export default function DemoPage() {
   return (
     <RefreshProvider>
-      <main className="mx-auto flex max-w-[1400px] flex-col gap-4 px-4 py-6">
-        <header className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-lg font-semibold tracking-tight">
-            RewardRail — live on Stellar testnet
-          </h1>
-          <p className="mono text-[12px]" style={{ color: 'var(--muted)' }}>
-            campaign {CAMPAIGN_ID} · escrow {config.escrowId.slice(0, 6)}…
-            {config.escrowId.slice(-6)}
-          </p>
-        </header>
+      <main className="container demo-page">
+        <p className="eyebrow" style={{ marginBottom: 10 }}>
+          <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>
+            ← RewardRail
+          </Link>
+        </p>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <AdvertiserPanel campaignId={CAMPAIGN_ID} />
-          <PlayerPanel campaignId={CAMPAIGN_ID} />
-          <PublisherPanel campaignId={CAMPAIGN_ID} />
-          <OperatorPanel />
+        <div className="demo-shell">
+          <header className="demo-bar">
+            <span className="demo-bar__dots">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className="demo-bar__title">Settlement console</span>
+            <span className="demo-bar__meta mono">
+              <span className="demo-live">
+                <i />
+                Stellar testnet
+              </span>
+              <span>
+                campaign <b>{CAMPAIGN_ID}</b>
+              </span>
+              <span>
+                escrow <b>{config.escrowId.slice(0, 6)}…{config.escrowId.slice(-6)}</b>
+              </span>
+            </span>
+          </header>
+
+          <div className="demo-grid">
+            <AdvertiserPanel campaignId={CAMPAIGN_ID} />
+            <PlayerPanel campaignId={CAMPAIGN_ID} />
+            <PublisherPanel campaignId={CAMPAIGN_ID} />
+            <OperatorPanel />
+          </div>
+
+          <TransactionLog />
         </div>
-
-        <TransactionLog />
       </main>
     </RefreshProvider>
   );

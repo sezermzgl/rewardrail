@@ -1,100 +1,136 @@
-/** The shell every panel shares, so four of them read as one console. */
+import type { ReactNode } from 'react';
+
+/**
+ * The shell every panel shares, so four of them read as one console.
+ *
+ * The vocabulary — window chrome, bordered stat tiles, a dark strip carrying
+ * the proof — is the landing's own `.actor-panel` mock, made real. A visitor
+ * arriving from the landing should recognise the product, not meet a second
+ * one with different manners.
+ */
 export function Panel({
   title,
   role,
+  icon,
   children,
+  proof,
 }: {
   title: string;
   role: string;
-  children: React.ReactNode;
+  icon?: ReactNode;
+  children: ReactNode;
+  proof?: ReactNode;
 }) {
   return (
-    <section
-      className="flex min-w-0 flex-col rounded-lg border p-4"
-      style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}
-    >
-      <header className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-        <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-          {role}
-        </span>
+    <section className="dpanel">
+      <header className="dpanel__head">
+        {icon}
+        <h2>{title}</h2>
+        <small>{role}</small>
       </header>
-      <div className="flex min-w-0 flex-col gap-3 text-sm">{children}</div>
+      <div className="dpanel__body">{children}</div>
+      {proof}
     </section>
   );
 }
 
-/** A labelled number. The label never wraps away from its value. */
-export function Figure({
+type Tone = 'positive' | 'warning' | 'quiet';
+
+/** One figure, given room to be read. */
+export function Stat({
   label,
   value,
   unit,
-  hint,
+  tone,
+  title,
 }: {
   label: string;
   value: string;
   unit?: string;
-  hint?: string;
+  tone?: Tone;
+  title?: string;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span style={{ color: 'var(--muted)' }}>
+    <div className="dstat" data-tone={tone} title={title}>
+      <span>
         {label}
-        {hint ? (
-          <span className="ml-1 text-[11px]" title={hint}>
-            ⓘ
-          </span>
-        ) : null}
+        {title ? ' ⓘ' : ''}
       </span>
-      <span className="numeric font-medium">
+      <strong className="numeric">
         {value}
-        {unit ? <span className="ml-1 text-[11px] font-normal" style={{ color: 'var(--muted)' }}>{unit}</span> : null}
-      </span>
+        {unit ? <u> {unit}</u> : null}
+      </strong>
     </div>
   );
 }
 
-export function Placeholder({ children }: { children: React.ReactNode }) {
+/**
+ * The proof strip.
+ *
+ * Every panel ends with the transaction behind the numbers above it. Without a
+ * visible hash the auditability claim is a sentence in a pitch deck; with one
+ * it is a link a stranger can follow.
+ */
+export function Proof({
+  label,
+  hash,
+  url,
+  fallback,
+}: {
+  label: string;
+  hash?: string;
+  url?: string;
+  fallback?: string;
+}) {
   return (
-    <p className="text-[13px]" style={{ color: 'var(--muted)' }}>
-      {children}
-    </p>
+    <footer className="dtx mono">
+      <span>{label}</span>
+      {url && hash ? (
+        <a href={url} target="_blank" rel="noreferrer">
+          {hash}
+        </a>
+      ) : (
+        <code>{fallback ?? 'awaiting first action'}</code>
+      )}
+    </footer>
   );
 }
 
-export function Problem({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[13px]" style={{ color: 'var(--warn)' }}>
-      {children}
-    </p>
-  );
-}
-
-/** A panel action. Disabled while it runs, so one click spends once. */
 export function Action({
   label,
   onClick,
   pending,
   disabled,
   title,
+  variant,
+  icon,
 }: {
   label: string;
   onClick: () => void;
   pending?: boolean;
   disabled?: boolean;
   title?: string;
+  variant?: 'quiet' | 'danger';
+  icon?: ReactNode;
 }) {
-  const off = disabled || pending;
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={off}
+      disabled={disabled || pending}
       title={title}
-      className="rounded-md px-3 py-1.5 text-[13px] font-medium transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
-      style={{ background: 'var(--accent)', color: 'var(--bg)' }}
+      className={`dbutton${variant ? ` dbutton--${variant}` : ''}`}
     >
+      {pending ? null : icon}
       {pending ? 'Working…' : label}
     </button>
   );
+}
+
+export function Note({ children }: { children: ReactNode }) {
+  return <p className="dnote">{children}</p>;
+}
+
+export function Problem({ children }: { children: ReactNode }) {
+  return <p className="dproblem">{children}</p>;
 }
