@@ -61,6 +61,29 @@ assertConfigured();
 const app = express();
 app.use(express.json());
 
+/**
+ * Guard the write endpoints.
+ *
+ * Reads stay open: balances, events and campaign state are public on chain
+ * anyway, and the panels should work for anyone handed the URL. Writes are a
+ * different thing — each one moves money, and this service holds the issuer
+ * key, so on a public host an open POST is someone else's demo to end.
+ *
+ * The secret is shared rather than per-user because there are no users here;
+ * it exists to keep a URL from being an actuator, not to identify anybody.
+ */
+app.use((req, res, next) => {
+  if (req.method !== 'POST' || !config.writeSecret) return next();
+
+  const offered = req.get('x-rewardrail-key');
+  if (offered === config.writeSecret) return next();
+
+  return res.status(401).json({
+    error: 'this endpoint needs the write key',
+    detail: 'send it as x-rewardrail-key',
+  });
+});
+
 /** Seed the store from the players the signup script created. */
 for (const [publicKey, { label }] of playerKeys) {
   registerPlayer(publicKey, label);
@@ -99,6 +122,9 @@ function payRewardAndFreeze(player, amount) {
 app.get('/health', (_req, res) => {
   res.json({
     ok: true,
+    // Surfaced so a deployer can see at a glance whether the writes are
+    // guarded, rather than discovering it the hard way.
+    writesProtected: Boolean(config.writeSecret),
     escrow: config.escrowId,
     tusdcSac: config.tusdcSacId,
     validator: keys.validator.publicKey(),
@@ -801,6 +827,9 @@ app.get('/player/cashout/:id', async (req, res) => {
 
 app.listen(config.port, () => {
   console.log(`validator listening on http://localhost:${config.port}`);
+  if (!config.writeSecret) {
+    console.log('  writes are UNAUTHENTICATED — set WRITE_SECRET before exposing this');
+  }
   console.log(`  escrow    ${config.escrowId}`);
   console.log(`  validator ${keys.validator.publicKey()}`);
   console.log(`  players   ${allPlayers().map((p) => p.label).join(', ') || 'none'}`);

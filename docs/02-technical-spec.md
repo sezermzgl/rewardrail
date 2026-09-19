@@ -397,3 +397,23 @@ The pair already existed with real depth, so the demo trades against liquidity n
 **The price comes from the router, not from us.** A price derived from pool reserves is a guess about the protocol's own maths. `router_get_amounts_out` returns the number it will honour.
 
 **`amount_out_min` is the whole protection.** Without it a swap executes at whatever the pool offers by the time it lands, which on a thin pool is whatever an observer decides to make it. The quote is taken, one percent of slippage is allowed, and anything worse reverts. A ten minute deadline bounds the other direction: long enough to survive a busy network, short enough that a stale quote cannot execute at a price nobody agreed to.
+
+## Deploying the validator
+
+The service is safe on localhost and is not safe on a public URL without two changes. Both are configuration, not code.
+
+### Writes need a key
+
+Every POST moves money or reverses it, and the service holds the REWARD issuer key. An open write endpoint on a public host means anyone who finds the URL can open campaigns, flag players, or drain a demo mid-presentation.
+
+`WRITE_SECRET` turns on a check for an `x-rewardrail-key` header on POST routes. Reads stay open — balances, events and campaign state are public on chain anyway, and the panels should work for anyone handed the link.
+
+The guard fails closed where it matters: with `NODE_ENV=production` set and no secret, the service refuses to start rather than publishing an open write surface by omission. Locally, with neither set, everything works as before and the boot log says the writes are unauthenticated. `GET /health` reports `writesProtected` so a deployer can see the state without guessing.
+
+The secret is shared rather than per-user because there are no users here. It exists to stop a URL from being an actuator, not to identify anybody.
+
+### Keys need an environment
+
+Secrets load from `packages/scripts/keys.json`, which a stateless host does not have and the repository must never carry. `VALIDATOR_KEYS`, `VALIDATOR_PLAYERS` and `VALIDATOR_DEPLOYED` each take the same JSON as the corresponding file, and the files remain the fallback so local development needs no exports.
+
+Anything beyond a demo should hold these in a KMS rather than an environment variable. That is the same caveat as the custodial player keys, for the same reason.

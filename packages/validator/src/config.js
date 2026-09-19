@@ -21,16 +21,45 @@ function readJson(path, hint) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
-const rawKeys = readJson(
+/**
+ * Read a key set from the environment, falling back to the file the setup
+ * scripts write.
+ *
+ * A stateless host has no `keys.json` — the repo does not carry it and should
+ * not — so anything deployed reads the same JSON out of an env var instead.
+ * Locally the file keeps working and nobody has to export anything.
+ */
+function readKeySet(envName, path, hint, { required = true } = {}) {
+  const fromEnv = process.env[envName];
+  if (fromEnv) {
+    try {
+      return JSON.parse(fromEnv);
+    } catch (err) {
+      throw new Error(`${envName} is not valid JSON: ${err.message}`);
+    }
+  }
+  if (!existsSync(path)) {
+    if (required) throw new Error(`neither ${envName} nor ${path} — ${hint}`);
+    return {};
+  }
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+const rawKeys = readKeySet(
+  'VALIDATOR_KEYS',
   join(SCRIPTS, 'keys.json'),
-  'run `npm run bootstrap` in packages/scripts',
+  'run `npm run bootstrap` in packages/scripts, or set VALIDATOR_KEYS',
 );
-const rawPlayers = existsSync(join(SCRIPTS, 'players.json'))
-  ? readJson(join(SCRIPTS, 'players.json'), '')
-  : {};
-const deployed = readJson(
+const rawPlayers = readKeySet(
+  'VALIDATOR_PLAYERS',
+  join(SCRIPTS, 'players.json'),
+  '',
+  { required: false },
+);
+const deployed = readKeySet(
+  'VALIDATOR_DEPLOYED',
   join(SCRIPTS, 'deployed.json'),
-  'run `npm run deploy-escrow` in packages/scripts',
+  'run `npm run deploy-escrow` in packages/scripts, or set VALIDATOR_DEPLOYED',
 );
 
 export const keys = Object.fromEntries(
@@ -70,6 +99,16 @@ export function rememberPlayer(label, keypair) {
 
 export const config = {
   port: Number(process.env.PORT ?? 8787),
+
+  /**
+   * Shared secret for the write endpoints.
+   *
+   * Every POST here moves money or reverses it, and the service holds the
+   * issuer key. Unauthenticated on localhost is fine; unauthenticated on a
+   * public URL means anyone who finds it can drain the demo or wedge it
+   * mid-presentation. Reads stay open so the panels work for any viewer.
+   */
+  writeSecret: process.env.WRITE_SECRET ?? null,
 
   horizonUrl: process.env.HORIZON_URL ?? 'https://horizon-testnet.stellar.org',
   sorobanRpcUrl: process.env.SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org',
@@ -131,6 +170,14 @@ export const PAYOUT = process.env.PAYOUT_ASSET_ISSUER
 export const TUSDC = PAYOUT;
 
 export function assertConfigured() {
+  // Fail closed rather than publish an open write surface by omission. A
+  // host that sets NODE_ENV=production and forgets the secret is exactly the
+  // case a warning in the log would not catch in time.
+  if (process.env.NODE_ENV === 'production' && !config.writeSecret) {
+    throw new Error(
+      'WRITE_SECRET is required in production — the write endpoints hold the issuer key',
+    );
+  }
   if (!config.escrowId) throw new Error('escrow contract id missing from deployed.json');
   if (!config.tusdcSacId) throw new Error('TUSDC SAC id missing from deployed.json');
   for (const role of ['rewardIssuer', 'validator', 'sponsor', 'platform', 'publisher']) {
