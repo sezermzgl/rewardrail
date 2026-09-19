@@ -5,38 +5,12 @@
  * that move money: each returns the transaction hashes so the app can show
  * the player what happened on chain, which is the whole auditability claim
  * made visible rather than asserted.
+ *
+ * The POST itself lives in post.ts, shared with the demo console's writes.
  */
-import { config } from '../chain/config';
+import { post, type TxRef } from './post';
 
-async function post<T>(path: string, body: unknown): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(`${config.validatorUrl}${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    throw new Error('The validator is not reachable. Start it with `npm start` in packages/validator.');
-  }
-
-  const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok) {
-    // The validator answers failures with { error, detail } and a 409 carries
-    // the tier that blocked it, so surface the specific reason rather than a
-    // status code the player cannot act on.
-    const reason = [payload.error, payload.detail ?? payload.reason]
-      .filter(Boolean)
-      .join(' — ');
-    throw new Error(reason || `request failed with ${res.status}`);
-  }
-  return payload as T;
-}
-
-export interface TxRef {
-  hash: string;
-  url: string;
-}
+export type { TxRef };
 
 export interface CompletedAction {
   actionId: string;

@@ -34,9 +34,12 @@ Players never see a wallet, a seed phrase or a fee. Accounts are opened with spo
 | Artifact | ID |
 | --- | --- |
 | Escrow contract | [`CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI`](https://stellar.expert/explorer/testnet/contract/CD6HZHGUURVSRWZAODFFLC7JX5WCXZCXHEXOFPXAE5V5ULAD3NDCVTYI) |
-| TUSDC Stellar Asset Contract | [`CDVIFB2VHPXZA74M7I7H5GFTBEK6FPC5PRNRYNZB6TVCR3MECTWY3MRB`](https://stellar.expert/explorer/testnet/contract/CDVIFB2VHPXZA74M7I7H5GFTBEK6FPC5PRNRYNZB6TVCR3MECTWY3MRB) |
+| Payout asset SAC — Circle testnet USDC | [`CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`](https://stellar.expert/explorer/testnet/contract/CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA) |
+| TUSDC SAC — our own asset, superseded | [`CDVIFB2VHPXZA74M7I7H5GFTBEK6FPC5PRNRYNZB6TVCR3MECTWY3MRB`](https://stellar.expert/explorer/testnet/contract/CDVIFB2VHPXZA74M7I7H5GFTBEK6FPC5PRNRYNZB6TVCR3MECTWY3MRB) |
 
-Contract ids are also written to `packages/scripts/deployed.json`, which the web app reads directly so no screen can drift from the live deployment.
+The escrow settles in Circle's testnet USDC. TUSDC was ours and proved the mechanism, but no anchor recognises an asset we minted, so it has no exit; it stays deployed as a fallback for running the flow with no anchor in the loop.
+
+Contract ids are written to `packages/scripts/deployed.json`, which the web app reads directly (`anchorSac` first, `tusdcSac` as fallback) so no screen can drift from the live deployment.
 
 Reference transactions, all on testnet:
 
@@ -119,7 +122,7 @@ npm install
 ```bash
 cd packages/scripts
 npm run bootstrap       # accounts, issuer flags, and the checks that they are set
-npm run issue-assets    # TUSDC, its SAC, and a funded advertiser
+npm run issue-assets    # TUSDC and its SAC — the no-anchor fallback path
 npm run signup          # two sponsored players, holding zero XLM
 ```
 

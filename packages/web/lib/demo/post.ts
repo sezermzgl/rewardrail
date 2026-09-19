@@ -4,9 +4,7 @@
  * It lives in its own module because two files now need it — `actions.ts` for
  * the player app's writes and `console-actions.ts` for the demo console's —
  * and the alternative is two copies of the same error handling, which is the
- * split that gets one copy fixed and the other forgotten. `actions.ts` still
- * carries its own private copy while another session is editing it; switching
- * that import over is the last step of the move.
+ * split that gets one copy fixed and the other forgotten.
  */
 import { config } from '../chain/config';
 

@@ -90,9 +90,11 @@ For a general-purpose financial token this counts as a flaw. For an advertising 
 
 ### The exit is a real anchor, not a mock
 
-The demo cashes out through the SDF reference anchor on testnet. Nothing about that path is simulated: the player's account authenticates over SEP-10 against the anchor's own challenge, a SEP-24 withdrawal is opened on the anchor's server, and the interactive URL that comes back is the anchor's KYC and payout page. The player completes it with the anchor; the payout details never reach us.
+The demo cashes out through a Turkish anchor on testnet, in USDC, and the player is paid in lira. Nothing about that path is simulated on our side: the player's account authenticates over SEP-10 against a challenge we verify came from the key the anchor publishes, a SEP-6 withdrawal is opened on the anchor's server, and the USDC is sent on chain with the memo the anchor asked for. The anchor confirms the payout itself.
 
-What is not real is the money. It is a test deployment that pays no fiat, its asset is SRT rather than a production stablecoin, and it accepts withdrawals between 1 and 10 SRT. Production means a licensed anchor in each market. The mechanism is identical; the counterparty is not.
+The shape depends on which standard the anchor speaks, and it is worth being precise because the two differ. SEP-24 hands the player to the anchor's own hosted page for KYC and payout details, so bank details never touch us. The Turkish ramp is SEP-6, which has no hosted page at all — `/player/cashout` returns a transaction id and no URL — and the wallet sends the asset itself. We support both and the code picks by what the anchor's `stellar.toml` offers.
+
+What is not real is the bank. The anchor simulates the lira leg: no IBAN receives money and no KYC is performed. Production means a licensed anchor in each market. The mechanism is identical; the counterparty is not.
 
 This distinction is worth stating before a judge asks, because the difference between "we integrated an anchor" and "we drew a picture of one" is exactly what separates a payout rail from a slide.
 
@@ -157,14 +159,16 @@ The demo is four panels side by side on one screen: advertiser, player, publishe
 | Minute | Step | On screen | Proof |
 | --- | --- | --- | --- |
 | 0:00 | Framing the problem | The $12.50 threshold screen and a monthly reconciliation table | — |
-| 0:40 | Campaign opening | Advertiser locks 100 USDC, the publisher ratio table appears | Escrow balance in the explorer |
-| 1:10 | Player signup | Two players sign in by email, no wallet setup | Sponsored accounts created |
-| 1:40 | Task completion | Both players finish the task, each is credited $0.40 | Shares split in one transaction |
-| 2:10 | Instant withdrawal | The trusted player withdraws $0.40 | No threshold, fee ~0.00001 XLM |
-| 2:40 | Publisher withdrawal | The publisher claims the accrued share | Transfer from escrow to publisher |
-| 3:00 | Cash out | The player opens a withdrawal at the anchor | SEP-24 transaction id, anchor's own KYC page |
-| 3:20 | Fraud scenario | The operator flags the second player | Clawback; the honest player's money is untouched |
-| 3:45 | Campaign closing | Unspent budget returns to the advertiser | Refund transaction in the explorer |
+| 0:35 | Campaign opening | Advertiser swaps XLM for the payout asset and locks a budget | Soroswap route and escrow balance in the explorer |
+| 1:05 | Player signup | A player signs in by email, no wallet setup | Sponsored account created, zero XLM |
+| 1:30 | Playing a game | The player finishes a game and is credited | Settle and reward, two hashes; the reward is frozen |
+| 1:50 | Publisher withdrawal | The publisher claims its accrued share | Transfer from escrow, no minimum |
+| 2:15 | Fraud scenario | The operator flags a second player | Clawback; the honest player's reward is untouched |
+| 2:45 | The reward unfreezes | The player converts, now that the window has closed | Burn and redeem, paid out of escrow |
+| 3:10 | Cash out to lira | A withdrawal opens at the Turkish anchor | SEP-6 transaction id, lira amount and rate |
+| 3:40 | Campaign closing | Unspent budget returns to the advertiser | Refund transaction in the explorer |
+
+The order is not arbitrary. The reward is frozen for the clawback window the moment it is paid, and the publisher and fraud steps are what fill that time — so the freeze is demonstrated by what happens during it rather than by watching a countdown. Set `CLAWBACK_WINDOW_SECONDS` to match the gap between 1:30 and 2:45; the default of 60 fits.
 
 ### The spine of the narrative
 
