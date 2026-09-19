@@ -18,7 +18,7 @@ UI that refetches after every action.
 
 ## Configuration
 
-Reads `NEXT_PUBLIC_ESCROW_CONTRACT_ID` and `NEXT_PUBLIC_TUSDC_SAC_ID`; the
+Reads `NEXT_PUBLIC_ESCROW_CONTRACT_ID` and `NEXT_PUBLIC_PAYOUT_SAC_ID`; the
 network defaults to testnet so a panel renders without a `.env`. Current ids
 live in `packages/scripts/deployed.json`.
 

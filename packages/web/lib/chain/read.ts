@@ -144,9 +144,9 @@ export function isSettled(actionId: Uint8Array): Promise<boolean> {
 /**
  * A contract's balance of a classic asset, read through that asset's SAC.
  *
- * The escrow is a contract, so its TUSDC does not appear in Horizon at all —
- * only the SAC knows about it. This is what the advertiser panel shows as
- * "locked in escrow".
+ * The escrow is a contract, so its payout asset does not appear in Horizon at
+ * all — only the SAC knows about it. This is what the advertiser panel shows
+ * as "locked in escrow".
  */
 export function contractAssetBalance(
   sacId: string,
@@ -193,7 +193,7 @@ export async function accountAssetBalance(
  */
 export async function getCampaignView(campaignId: number): Promise<CampaignView> {
   const campaign = await getCampaign(campaignId);
-  const escrowStroops = await contractAssetBalance(config.tusdcSacId, config.escrowId);
+  const escrowStroops = await contractAssetBalance(config.payoutSacId, config.escrowId);
 
   const splits: CampaignView['splits'] = Object.entries(campaign.splits).map(
     ([publisher, split]) => ({ publisher, ...(split as Split) }),

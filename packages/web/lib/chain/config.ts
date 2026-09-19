@@ -21,7 +21,22 @@ export const config = {
    * Override only for a validator that does send them.
    */
   validatorUrl: process.env.NEXT_PUBLIC_VALIDATOR_URL ?? '/api/validator',
-  tusdcSacId: process.env.NEXT_PUBLIC_TUSDC_SAC_ID ?? deployed.tusdcSac ?? '',
+  /**
+   * The asset the escrow settles in, as a SAC.
+   *
+   * It is Circle's testnet USDC now, not the TUSDC we issued ourselves. The
+   * reason is the exit: the Turkish anchor converts USDC to lira, and a payout
+   * asset no anchor accepts makes the last step of the demo a mock. The old
+   * id stays in `deployed.json` as a fallback so a tree that has not been
+   * re-bootstrapped still reads something.
+   */
+  payoutSacId:
+    process.env.NEXT_PUBLIC_PAYOUT_SAC_ID ??
+    deployed.anchorSac ??
+    deployed.tusdcSac ??
+    '',
+  /** What to call that asset on screen. */
+  payoutAssetCode: process.env.NEXT_PUBLIC_PAYOUT_ASSET_CODE ?? 'USDC',
   explorerBase: 'https://stellar.expert/explorer/testnet',
 };
 

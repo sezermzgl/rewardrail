@@ -30,7 +30,7 @@ export interface CampaignView {
   /** Budget not yet released by a settle. Per campaign. */
   remaining: string;
   /**
-   * TUSDC the escrow contract holds, across EVERY campaign.
+   * Payout asset the escrow contract holds, across EVERY campaign.
    *
    * One contract carries all campaigns, so this is not campaign 0's escrow.
    * Neither a per-campaign balance nor a per-campaign spend can be read from
