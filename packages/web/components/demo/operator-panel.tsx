@@ -9,11 +9,12 @@
  * project's strongest claim and, until this existed, the only way to trigger
  * it was curl — which proves the mechanism to nobody watching a demo.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ShieldAlert, Undo2 } from 'lucide-react';
 
 import { explorerAccount } from '@/lib/chain/config';
 import { flagFraud, type FraudResult } from '@/lib/demo/console-actions';
+import { SEEDED_LABELS, sessionPlayers } from '@/lib/demo/session';
 import { fetchPlayers, type ValidatorPlayer } from '@/lib/demo/validator';
 import { useAction } from '@/lib/demo/use-action';
 import { useLatestProof } from '@/lib/demo/use-proof';
@@ -23,6 +24,28 @@ import { Action, Note, Panel, Problem, Proof, Stat } from './panel';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ageDays = (createdAt: number) => ((Date.now() - createdAt) / DAY_MS).toFixed(1);
+
+/**
+ * The walkthrough's accounts first, then everything else, newest first.
+ *
+ * Nothing is hidden — this is the platform's risk view and an operator who
+ * cannot see an account cannot act on it. But the deployed service remembers
+ * every account a scripted rehearsal ever opened, and hunting for the
+ * fraudster among a dozen rows is not how this step should go with a judge
+ * watching.
+ */
+function forWalkthroughFirst(
+  players: ValidatorPlayer[],
+  signedIn: string[],
+): ValidatorPlayer[] {
+  const relevant = (player: ValidatorPlayer) =>
+    SEEDED_LABELS.includes(player.label) || signedIn.includes(player.publicKey);
+
+  return [...players].sort((a, b) => {
+    const byRelevance = Number(relevant(b)) - Number(relevant(a));
+    return byRelevance !== 0 ? byRelevance : b.createdAt - a.createdAt;
+  });
+}
 
 /**
  * What the reversal actually did, in the operator's own words.
@@ -115,8 +138,12 @@ export function OperatorPanel({ campaignId }: { campaignId: number }) {
   const proof = useLatestProof(['clawback', 'refund', 'flag']);
   const offline = error?.includes('not reachable');
 
+  const [signedIn, setSignedIn] = useState<string[]>([]);
+  useEffect(() => sessionPlayers.subscribe(setSignedIn), []);
+
   const flagged = data?.filter((p) => p.flagged).length ?? 0;
   const held = data?.filter((p) => !p.canConvert && !p.flagged).length ?? 0;
+  const rows = data ? forWalkthroughFirst(data, signedIn) : [];
 
   return (
     <Panel
@@ -166,7 +193,7 @@ export function OperatorPanel({ campaignId }: { campaignId: number }) {
               </tr>
             </thead>
             <tbody>
-              {data.map((player) => (
+              {rows.map((player) => (
                 <PlayerRow key={player.publicKey} player={player} campaignId={campaignId} />
               ))}
             </tbody>

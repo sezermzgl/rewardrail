@@ -30,6 +30,7 @@ import {
   submitAsPlayer,
   createSponsoredPlayer,
   assetBalance,
+  playerAssets,
   payment,
   clawback,
   setTrustline,
@@ -91,6 +92,34 @@ for (const [publicKey, { label }] of playerKeys) {
 
 const stroopsToUnits = (stroops) => (Number(stroops) / 10_000_000).toFixed(7);
 
+/**
+ * The tier, reconciled with what the ledger actually allows.
+ *
+ * `lastRewardAt` lives in memory. After a restart it is null, so `tierOf`
+ * reports the clawback window closed for a reward the chain still has frozen
+ * — F6 in docs/03-contract-interface.md, and exactly the situation a
+ * mid-presentation restart produces. The panel would then offer a cash-out
+ * that the burn inside `/player/convert` goes on to fail.
+ *
+ * The trustline is the authority here, not our clock: while it is
+ * unauthorized and carries a balance, the reward cannot move by any route.
+ * Saying "not yet" is the honest answer, and it is also the one the chain
+ * will give a moment later.
+ */
+function reconcileTier(tier, assets) {
+  if (!tier.canConvert) return tier;
+  if (!assets.rewardFrozen || Number(assets.rewardBalance) <= 0) return tier;
+
+  return {
+    ...tier,
+    canConvert: false,
+    reason: 'the reward is still frozen on the ledger',
+    // Not a countdown: the clock this would have come from is the one that
+    // was lost. The ledger says frozen, and that is all we know.
+    windowRemainingSeconds: null,
+  };
+}
+
 function fail(res, status, message, detail) {
   return res.status(status).json({ error: message, detail: detail ?? undefined });
 }
@@ -141,12 +170,17 @@ app.get('/events', (_req, res) => res.json(allEvents()));
 
 app.get('/players', async (_req, res) => {
   const rows = await Promise.all(
-    allPlayers().map(async (p) => ({
-      ...p,
-      ...tierOf(p.publicKey),
-      rewardBalance: await assetBalance(p.publicKey, REWARD),
-      tusdcBalance: await assetBalance(p.publicKey, TUSDC),
-    })),
+    allPlayers().map(async (p) => {
+      const assets = await playerAssets(p.publicKey);
+      return {
+        ...p,
+        ...reconcileTier(tierOf(p.publicKey), assets),
+        rewardBalance: assets.rewardBalance,
+        tusdcBalance: assets.payoutBalance,
+        /** The ledger's own view of the window, alongside our clock's. */
+        rewardFrozen: assets.rewardFrozen,
+      };
+    }),
   );
   res.json(rows);
 });
@@ -321,10 +355,11 @@ app.post('/player/signup', async (req, res) => {
   }
 });
 
-app.get('/player/tier', (req, res) => {
+app.get('/player/tier', async (req, res) => {
   const { player } = req.query;
   if (!getPlayer(player)) return fail(res, 404, 'unknown player');
-  res.json({ player, ...tierOf(player) });
+  const assets = await playerAssets(player);
+  res.json({ player, ...reconcileTier(tierOf(player), assets), rewardFrozen: assets.rewardFrozen });
 });
 
 /**
@@ -340,7 +375,10 @@ app.post('/player/convert', async (req, res) => {
   if (!getPlayer(player)) return fail(res, 404, 'unknown player');
   if (campaignId === undefined) return fail(res, 400, 'campaignId is required');
 
-  const tier = tierOf(player);
+  // The ledger has the final say on the window, so it is consulted before the
+  // store's clock rather than after the burn has already failed.
+  const assets = await playerAssets(player);
+  const tier = reconcileTier(tierOf(player), assets);
   if (!tier.canConvert) {
     return res.status(409).json({ error: 'conversion locked', ...tier });
   }
@@ -353,7 +391,7 @@ app.post('/player/convert', async (req, res) => {
   // upstream is wrong and paying out the larger of the two would be a bug.
   const claim = await readContract('reserve_of', [sc.u64(campaignId), sc.address(player)]);
   const claimUnits = stroopsToUnits(claim);
-  const rewardBalance = await assetBalance(player, REWARD);
+  const rewardBalance = assets.rewardBalance;
 
   if (Number(claimUnits) <= 0) return fail(res, 400, 'no claim to convert');
   if (Number(rewardBalance) < Number(claimUnits)) {

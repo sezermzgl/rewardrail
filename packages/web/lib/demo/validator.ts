@@ -26,6 +26,12 @@ export interface ValidatorPlayer {
   missing?: { ageDays: number; tasks: number };
   rewardBalance: string;
   tusdcBalance: string;
+  /**
+   * The ledger's own view of the clawback window: the REWARD trustline is
+   * unauthorized while the reward is frozen. The validator keeps its clock in
+   * memory, so after a restart this is the only field that still knows.
+   */
+  rewardFrozen?: boolean;
 }
 
 export class ValidatorOffline extends Error {

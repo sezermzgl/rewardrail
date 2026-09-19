@@ -86,6 +86,44 @@ export async function assetBalance(publicKey, asset) {
   return line?.balance ?? '0';
 }
 
+/**
+ * Everything the player panels need about one account, from one Horizon read.
+ *
+ * Two `assetBalance` calls meant two account loads per player per poll, and
+ * the number grew every time a panel wanted one more figure. With a dozen
+ * accounts on screen that is a lot of Horizon traffic for one console.
+ *
+ * `rewardFrozen` is the important one. The clawback window is enforced by the
+ * trustline's authorization flag, not by our clock, so this is the ledger's
+ * own answer to "can this reward move yet" — and it survives a restart that
+ * wipes the in-memory tier state.
+ */
+export async function playerAssets(publicKey) {
+  let account;
+  try {
+    account = await horizon.loadAccount(publicKey);
+  } catch {
+    // An account the store remembers but the network does not — a leftover
+    // from a reset network, say. Zeros are the honest answer; throwing here
+    // would take the whole player list down with it.
+    return { rewardBalance: '0', payoutBalance: '0', rewardFrozen: false, exists: false };
+  }
+
+  const find = (asset) =>
+    account.balances.find(
+      (b) => b.asset_code === asset.getCode() && b.asset_issuer === asset.getIssuer(),
+    );
+  const reward = find(REWARD);
+  const payout = find(TUSDC);
+
+  return {
+    rewardBalance: reward?.balance ?? '0',
+    payoutBalance: payout?.balance ?? '0',
+    rewardFrozen: Boolean(reward) && reward.is_authorized === false,
+    exists: true,
+  };
+}
+
 export function payment({ destination, asset, amount, source }) {
   return Operation.payment({ destination, asset, amount, source });
 }

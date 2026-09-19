@@ -117,7 +117,7 @@ export function PublisherPanel({ campaignId }: { campaignId: number }) {
         };
       }),
     );
-  });
+  }, { key: campaignId });
   const proof = useLatestProof(['withdraw']);
 
   return (

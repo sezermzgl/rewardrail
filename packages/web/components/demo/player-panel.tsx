@@ -9,10 +9,11 @@
  * the design claim — the player never learns any of this exists. A test holds
  * the line; see player-panel.test.ts.
  */
-import { useCallback, useState } from 'react';
-import { LogIn, Sparkles, UserRound } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Banknote, LogIn, Sparkles, UserRound } from 'lucide-react';
 
-import { completeAction, convert, signIn } from '@/lib/demo/actions';
+import { cashout, completeAction, convert, signIn } from '@/lib/demo/actions';
+import { demoPlayers, sessionPlayers } from '@/lib/demo/session';
 import { fetchPlayers, type ValidatorPlayer } from '@/lib/demo/validator';
 import { useAction } from '@/lib/demo/use-action';
 import { useLatestProof } from '@/lib/demo/use-proof';
@@ -24,10 +25,16 @@ function status(player: ValidatorPlayer): { text: string; tone: string } {
   if (player.flagged) return { text: 'On hold', tone: 'held' };
   if (player.canConvert) return { text: 'Ready to cash out', tone: 'ready' };
   const left = player.windowRemainingSeconds;
-  return { text: left && left > 0 ? `Ready in ${left}s` : 'On hold', tone: 'waiting' };
+  if (left && left > 0) return { text: `Ready in ${left}s`, tone: 'waiting' };
+  // No countdown but the ledger still has the reward frozen — the service
+  // restarted and lost the clock, while the trustline did not.
+  if (player.rewardFrozen) return { text: 'Held by the ledger', tone: 'waiting' };
+  return { text: 'On hold', tone: 'waiting' };
 }
 
 function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignId: number }) {
+  const [paidOut, setPaidOut] = useState<string | null>(null);
+
   const earn = useAction(
     useCallback(() => completeAction(campaignId, player.publicKey), [campaignId, player.publicKey]),
   );
@@ -35,8 +42,32 @@ function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignI
     useCallback(() => convert(campaignId, player.publicKey), [campaignId, player.publicKey]),
   );
 
+  /**
+   * The last mile: the balance leaves for a bank account.
+   *
+   * This is the 3:00 step of the demo script, and until now the console had
+   * no button for it — the anchor could only be reached from the player app.
+   * The Turkish ramp is SEP-6, which has no hosted page, so what comes back
+   * is a transaction id and the payment that delivered the asset.
+   */
+  const withdraw = useAction(
+    useCallback(async () => {
+      setPaidOut(null);
+      const started = await cashout(player.publicKey, Number(player.tusdcBalance));
+      setPaidOut(
+        started.interactiveUrl
+          ? 'The payout provider took over: bank details are given to them, never to us.'
+          : `Withdrawal ${started.anchorTransactionId} opened at the payout provider. Bank details never reach us.`,
+      );
+      if (started.interactiveUrl) {
+        window.open(started.interactiveUrl, '_blank', 'noopener');
+      }
+    }, [player.publicKey, player.tusdcBalance]),
+  );
+
   const state = status(player);
   const nothingToCashOut = Number(player.rewardBalance) <= 0;
+  const nothingToWithdraw = Number(player.tusdcBalance) <= 0;
 
   return (
     <div className="dcard" data-flagged={player.flagged}>
@@ -79,6 +110,19 @@ function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignI
                 : player.reason
           }
         />
+        <Action
+          label="Send to bank"
+          variant="quiet"
+          onClick={withdraw.run}
+          pending={withdraw.pending}
+          disabled={nothingToWithdraw}
+          title={
+            nothingToWithdraw
+              ? 'Cash out a reward first.'
+              : 'Open a withdrawal with the payout provider, paid out in Turkish lira.'
+          }
+          icon={<Banknote size={14} strokeWidth={2.4} />}
+        />
       </div>
 
       <Note>
@@ -87,6 +131,8 @@ function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignI
 
       {earn.error ? <Problem>{earn.error}</Problem> : null}
       {cashOut.error ? <Problem>{cashOut.error}</Problem> : null}
+      {withdraw.error ? <Problem>{withdraw.error}</Problem> : null}
+      {paidOut && !withdraw.error ? <Note>{paidOut}</Note> : null}
     </div>
   );
 }
@@ -95,8 +141,12 @@ function PlayerCard({ player, campaignId }: { player: ValidatorPlayer; campaignI
  * Signing in.
  *
  * An email and nothing else. This is the panel's strongest single claim: the
- * account behind it is opened on chain, holds no XLM, and the person who
- * signed in was asked for nothing they would have to keep safe.
+ * account behind it is opened on chain, holds nothing the person has to look
+ * after, and they were asked for nothing they would have to keep safe.
+ *
+ * The account is remembered for this browser so the console can show it
+ * alongside the two the walkthrough follows, instead of losing it among every
+ * account the service has ever seen.
  */
 function SignInForm() {
   const [email, setEmail] = useState('');
@@ -105,6 +155,7 @@ function SignInForm() {
   const submit = useAction(
     useCallback(async () => {
       const outcome = await signIn(email);
+      sessionPlayers.add(outcome.player);
       setResult(
         outcome.returning
           ? `Welcome back, ${outcome.label}.`
@@ -148,10 +199,17 @@ export function PlayerPanel({ campaignId }: { campaignId: number }) {
   const proof = useLatestProof(['reward', 'convert']);
   const offline = error?.includes('not reachable');
 
+  const [signedIn, setSignedIn] = useState<string[]>([]);
+  useEffect(() => sessionPlayers.subscribe(setSignedIn), []);
+  const [showAll, setShowAll] = useState(false);
+
+  const { shown, hidden } = demoPlayers(data ?? [], signedIn);
+  const visible = showAll ? (data ?? []) : shown;
+
   return (
     <Panel
       title="Player"
-      role={`${data?.length ?? 0} ${data?.length === 1 ? 'account' : 'accounts'}`}
+      role={`${visible.length} ${visible.length === 1 ? 'account' : 'accounts'}`}
       icon={<UserRound size={16} strokeWidth={2.2} />}
       proof={
         <Proof
@@ -174,11 +232,25 @@ export function PlayerPanel({ campaignId }: { campaignId: number }) {
         <Problem>{error}</Problem>
       ) : null}
 
-      {data?.map((player) => (
+      {visible.map((player) => (
         <PlayerCard key={player.publicKey} player={player} campaignId={campaignId} />
       ))}
 
+      {data && data.length > 0 && visible.length === 0 ? (
+        <Note>No accounts from this walkthrough yet. Sign in above.</Note>
+      ) : null}
       {data?.length === 0 ? <Note>No accounts yet.</Note> : null}
+
+      {/* Hidden rather than dropped: rehearsals leave accounts behind, and a
+          panel that silently omits them would be a strange thing to put next
+          to an audit trail. */}
+      {hidden > 0 ? (
+        <button type="button" className="dmore" onClick={() => setShowAll((v) => !v)}>
+          {showAll
+            ? 'Show only this walkthrough'
+            : `Show ${hidden} more ${hidden === 1 ? 'account' : 'accounts'} from earlier runs`}
+        </button>
+      ) : null}
 
       <Note>No payout threshold. Rewards arrive in seconds.</Note>
     </Panel>

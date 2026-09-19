@@ -108,7 +108,9 @@ export function AdvertiserPanel({
   campaignId: number;
   onCampaignOpened: (campaignId: number) => void;
 }) {
-  const { data, error, loading } = useLive(() => getCampaignView(campaignId));
+  const { data, error, loading } = useLive(() => getCampaignView(campaignId), {
+    key: campaignId,
+  });
   const proof = useLatestProof(['campaign', 'close', 'settle']);
   const [refunded, setRefunded] = useState<string | null>(null);
 
