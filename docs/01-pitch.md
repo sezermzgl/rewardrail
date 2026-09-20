@@ -37,7 +37,7 @@ A typical install splits like this:
 
 ### Four broken points
 
-1. **Payout thresholds.** Sending a $0.40 reward over PayPal loses money on fees. So platforms impose thresholds, users wait weeks, and most abandon before ever reaching one.
+1. **Payout thresholds.** On a consumer payment rail, sending a reward of, say, $0.40 costs more in fees than the reward is worth. So platforms impose a minimum — $10–15 is a typical figure — and a balance below it simply sits there. Most are abandoned before they ever clear it.
 2. **A separate rail per market.** Every country brings a different payment provider, a different gift card supplier, separate FX, and separate reconciliation. Entering a new market costs more in payment integration than in product.
 3. **Unverifiable spend.** The advertiser has to trust the claim that "1,000 installs happened." All verification power sits with the platform; there is no independent audit path.
 4. **Irreversible fraud.** Fraud is usually understood after the payout. Once money has left the account it does not come back, and either the platform or the advertiser eats the loss.

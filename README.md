@@ -4,7 +4,7 @@ A Stellar payout and settlement layer for rewarded advertising.
 
 A player finishes a game, and money reaches three parties in seconds — with no threshold, an advertiser budget anyone can audit on chain, and a reward that can still be taken back if the play turns out to be fraud.
 
-Built for the Rise In × Stellar Pro Hackathon 2026, Genesis Track. Testnet only.
+Built for the Rise In × Stellar Pro Hackathon 2026, Scale Track. Testnet only.
 
 ## Live
 
@@ -28,7 +28,7 @@ The demo runs on campaign 7 — 340 USDC at 4.00 per action, 85 plays — funded
 
 In rewarded advertising an advertiser pays for an install, a player earns points for completing a task, and a publisher takes a cut. The model needs micro-amount, instant, cross-border payouts. The rail underneath it is batched, delayed and separate per country, and the consequences are well known:
 
-- Players wait for a $10–15 threshold, because a $0.40 PayPal transfer loses money on fees
+- A reward of, say, $0.40 costs more to send than it is worth on a consumer payment rail, so platforms set a minimum — $10–15 is a typical one — and a balance that never reaches it is never paid
 - Publishers reconcile monthly and take the platform's numbers on trust
 - Advertisers cannot independently verify the invoice they receive
 - Fraud found after a payout is written off, because the money is gone
