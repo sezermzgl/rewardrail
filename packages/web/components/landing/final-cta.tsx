@@ -15,7 +15,7 @@ export function FinalCta() {
         </p>
         <div className="final-cta__actions">
           <ButtonLink href={routes.console}>
-            Open the live console <ArrowUpRight size={17} aria-hidden="true" />
+            Open the console <ArrowUpRight size={17} aria-hidden="true" />
           </ButtonLink>
           <ButtonLink href={routes.player} variant="secondary">
             Try the player app <Gamepad2 size={16} aria-hidden="true" />

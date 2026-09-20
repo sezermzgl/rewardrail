@@ -49,7 +49,7 @@ export function Hero() {
           </motion.p>
           <motion.div className="hero__actions" {...rise(0.32)}>
             <ButtonLink href={routes.console}>
-              Open the live console <ArrowUpRight size={17} aria-hidden="true" />
+              Open the console <ArrowUpRight size={17} aria-hidden="true" />
             </ButtonLink>
             <ButtonLink href={routes.player} variant="secondary">
               Try the player app <Gamepad2 size={16} aria-hidden="true" />

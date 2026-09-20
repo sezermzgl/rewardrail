@@ -133,12 +133,12 @@ export function ActorViews() {
 
         <Reveal className="actor-section__cta" delay={0.12}>
           <p>
-            The same four panels, live and clickable, against the campaign
-            running right now.
+            The same four panels, clickable, against the campaign running on
+            testnet right now.
           </p>
           <div>
             <ButtonLink href={routes.console}>
-              Open the live console <ArrowUpRight size={17} aria-hidden="true" />
+              Open the console <ArrowUpRight size={17} aria-hidden="true" />
             </ButtonLink>
             <ButtonLink href={routes.player} variant="secondary" className="on-light">
               Try the player app <Gamepad2 size={16} aria-hidden="true" />

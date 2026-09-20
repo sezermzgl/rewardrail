@@ -20,7 +20,7 @@ test("switches actor context and carries that actor's own transaction", async ()
 
 test("offers a way into the console and the player app", () => {
   render(<ActorViews />);
-  expect(screen.getByRole("link", { name: /open the live console/i })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: /open the console/i })).toHaveAttribute(
     "href",
     "/demo",
   );
