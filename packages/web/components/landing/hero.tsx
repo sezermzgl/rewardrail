@@ -38,7 +38,7 @@ export function Hero() {
       <div className="hero container">
         <div className="hero__copy">
           <motion.p className="eyebrow" {...rise(0.05)}>
-            Settlement infrastructure for rewarded ads — powered by Stellar
+            Settlement infrastructure for rewarded ads
           </motion.p>
           <motion.h1 {...rise(0.14)}>
             Every verified action pays everyone. <em>Instantly.</em>
