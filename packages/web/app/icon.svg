@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="RewardRail">
+  <!--
+    The navbar's brand mark, inverted for a browser tab.
+
+    On the page the tile is white with blue bars, because it sits on blue.
+    A tab strip is white or near-black, so a white tile would disappear into
+    one and vanish against the other; the blue tile carries itself on both.
+
+    The bars are a touch heavier than the 4px of the navbar. At 16px a 4/32
+    bar lands on two physical pixels with a 1.5px gap beside it, and the
+    three of them smear into one block.
+  -->
+  <rect width="32" height="32" rx="8" fill="#2C71F1"/>
+  <rect x="4.5" y="17" width="5" height="8" rx="2.5" fill="#FFFFFF"/>
+  <rect x="13.5" y="7" width="5" height="18" rx="2.5" fill="#FFFFFF"/>
+  <rect x="22.5" y="12" width="5" height="13" rx="2.5" fill="#FFFFFF"/>
+</svg>

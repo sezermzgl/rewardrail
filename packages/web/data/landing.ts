@@ -160,7 +160,7 @@ export const valuePillars: ReadonlyArray<ValuePillar> = [
   {
     id: "audit",
     eyebrow: "Auditable campaign spend",
-    title: "Make every dollar explain itself.",
+    title: "Make the budget explain itself.",
     description:
       "Budget, releases, publisher claims and the refund at close all land in one permanent trail the advertiser reads for itself.",
     metric: "5.20 USDC",

@@ -8,7 +8,7 @@ export function FinalCta() {
     <section className="final-cta">
       <Reveal className="container final-cta__inner">
         <p className="eyebrow">Settlement you can inspect</p>
-        <h2>See every dollar move.</h2>
+        <h2>See every payout move.</h2>
         <p>
           Follow one verified action from campaign budget to every
           participant—and back when fraud demands it.
