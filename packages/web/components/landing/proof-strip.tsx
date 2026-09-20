@@ -1,10 +1,11 @@
 import { proofItems } from "@/data/landing";
+import { Reveal } from "@/components/ui/reveal";
 
 export function ProofStrip() {
   return (
     <section className="statband" aria-label="Product proof">
       <div className="container">
-        <div className="statband__card">
+        <Reveal className="statband__card">
           <p className="statband__label">
             Proven on testnet
             <br />
@@ -16,7 +17,7 @@ export function ProofStrip() {
               <small>{item.label}</small>
             </div>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );

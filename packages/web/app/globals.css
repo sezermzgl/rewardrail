@@ -366,18 +366,27 @@ a {
   background: var(--off);
 }
 
-.rail-story__art {
+/* The scroll-linked drift lives on the art itself, so its host is what
+   spans the section and gives the scroll progress something to measure. */
+.rail-story__art-host {
   position: absolute;
   z-index: 0;
-  /* Nudged left of centre so the rail's inward dip clears the headline that
-     sits beside it. Centred, the stroke ran through the first line. */
-  left: calc(50% - 76px);
+  inset: 0;
+  pointer-events: none;
+}
+
+.rail-story__art {
+  position: absolute;
+  /* Centring is done in `left` rather than with a transform, because the
+     parallax writes `transform` and would drop a translateX sitting there.
+     Half of 1440 is 720; the extra 76px nudges the rail's inward dip clear
+     of the headline beside it, which the centred version ran through. */
+  left: calc(50% - 796px);
   top: 140px;
   width: 1440px;
   height: 1080px;
   background: url("/art/rail-desktop.svg") no-repeat center top / 1440px 1080px;
   pointer-events: none;
-  transform: translateX(-50%);
 }
 
 .rail-story__art--mobile {

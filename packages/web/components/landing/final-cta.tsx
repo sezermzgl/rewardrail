@@ -1,11 +1,12 @@
 import { ArrowUpRight, Gamepad2 } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button-link";
 import { escrowLink, routes } from "@/data/landing";
+import { Reveal } from "@/components/ui/reveal";
 
 export function FinalCta() {
   return (
     <section className="final-cta">
-      <div className="container final-cta__inner">
+      <Reveal className="container final-cta__inner">
         <p className="eyebrow">Settlement you can inspect</p>
         <h2>See every dollar move.</h2>
         <p>
@@ -27,7 +28,7 @@ export function FinalCta() {
           </a>{" "}
           on Stellar testnet
         </p>
-      </div>
+      </Reveal>
     </section>
   );
 }

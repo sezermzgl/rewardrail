@@ -1,10 +1,11 @@
 import { comparisonRows } from "@/data/landing";
 import { Reveal } from "@/components/ui/reveal";
+import { RailArt } from "./rail-art";
 
 export function Comparison() {
   return (
     <section className="rail-story" id="product">
-      <div className="rail-story__art" aria-hidden="true" />
+      <RailArt />
       <div className="container">
         <Reveal>
           <p className="eyebrow eyebrow--muted-center">

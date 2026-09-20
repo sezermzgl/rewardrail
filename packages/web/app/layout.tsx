@@ -19,7 +19,17 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" className={poppins.variable}>
-      <body>{children}</body>
+      <body>
+        {/*
+          The scroll reveals start hidden, which is rendered into the HTML.
+          Without this a visitor with scripting off would find a blank page
+          where the product case should be.
+        */}
+        <noscript>
+          <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }
